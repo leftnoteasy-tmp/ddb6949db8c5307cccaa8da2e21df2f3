@@ -2,6 +2,7 @@ package com.pivotal.hamster.appmaster.launcher;
 
 import org.apache.hadoop.yarn.service.AbstractService;
 
+import com.pivotal.hamster.appmaster.common.LaunchContext;
 import com.pivotal.hamster.proto.HamsterProtos;
 
 abstract public class ContainerLauncher extends AbstractService {
@@ -9,5 +10,5 @@ abstract public class ContainerLauncher extends AbstractService {
     super(name);
   }
 
-  abstract public HamsterProtos.LaunchResponseProto launch(HamsterProtos.LaunchRequestProto request);  
+  abstract public boolean[] launch(LaunchContext[] request);  
 }

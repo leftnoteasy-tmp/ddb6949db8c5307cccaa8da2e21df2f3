@@ -8,6 +8,84 @@ public final class HamsterProtos {
   public static void registerAllExtensions(
       com.google.protobuf.ExtensionRegistry registry) {
   }
+  public enum MsgType
+      implements com.google.protobuf.ProtocolMessageEnum {
+    UNKNOWN(0, 0),
+    ALLOCATE(1, 1),
+    LAUNCH(2, 2),
+    REGISTER(3, 3),
+    FINISH(4, 4),
+    ;
+    
+    public static final int UNKNOWN_VALUE = 0;
+    public static final int ALLOCATE_VALUE = 1;
+    public static final int LAUNCH_VALUE = 2;
+    public static final int REGISTER_VALUE = 3;
+    public static final int FINISH_VALUE = 4;
+    
+    
+    public final int getNumber() { return value; }
+    
+    public static MsgType valueOf(int value) {
+      switch (value) {
+        case 0: return UNKNOWN;
+        case 1: return ALLOCATE;
+        case 2: return LAUNCH;
+        case 3: return REGISTER;
+        case 4: return FINISH;
+        default: return null;
+      }
+    }
+    
+    public static com.google.protobuf.Internal.EnumLiteMap<MsgType>
+        internalGetValueMap() {
+      return internalValueMap;
+    }
+    private static com.google.protobuf.Internal.EnumLiteMap<MsgType>
+        internalValueMap =
+          new com.google.protobuf.Internal.EnumLiteMap<MsgType>() {
+            public MsgType findValueByNumber(int number) {
+              return MsgType.valueOf(number);
+            }
+          };
+    
+    public final com.google.protobuf.Descriptors.EnumValueDescriptor
+        getValueDescriptor() {
+      return getDescriptor().getValues().get(index);
+    }
+    public final com.google.protobuf.Descriptors.EnumDescriptor
+        getDescriptorForType() {
+      return getDescriptor();
+    }
+    public static final com.google.protobuf.Descriptors.EnumDescriptor
+        getDescriptor() {
+      return com.pivotal.hamster.proto.HamsterProtos.getDescriptor().getEnumTypes().get(0);
+    }
+    
+    private static final MsgType[] VALUES = {
+      UNKNOWN, ALLOCATE, LAUNCH, REGISTER, FINISH, 
+    };
+    
+    public static MsgType valueOf(
+        com.google.protobuf.Descriptors.EnumValueDescriptor desc) {
+      if (desc.getType() != getDescriptor()) {
+        throw new java.lang.IllegalArgumentException(
+          "EnumValueDescriptor is not for this type.");
+      }
+      return VALUES[desc.getIndex()];
+    }
+    
+    private final int index;
+    private final int value;
+    
+    private MsgType(int index, int value) {
+      this.index = index;
+      this.value = value;
+    }
+    
+    // @@protoc_insertion_point(enum_scope:MsgType)
+  }
+  
   public enum ProcessStateProto
       implements com.google.protobuf.ProtocolMessageEnum {
     RUNNING(0, 1),
@@ -50,7 +128,7 @@ public final class HamsterProtos {
     }
     public static final com.google.protobuf.Descriptors.EnumDescriptor
         getDescriptor() {
-      return com.pivotal.hamster.proto.HamsterProtos.getDescriptor().getEnumTypes().get(0);
+      return com.pivotal.hamster.proto.HamsterProtos.getDescriptor().getEnumTypes().get(1);
     }
     
     private static final ProcessStateProto[] VALUES = {
@@ -512,6 +590,455 @@ public final class HamsterProtos {
     }
     
     // @@protoc_insertion_point(class_scope:ProcessNameProto)
+  }
+  
+  public interface HamsterHnpRequestProtoOrBuilder
+      extends com.google.protobuf.MessageOrBuilder {
+    
+    // optional bytes request = 1;
+    boolean hasRequest();
+    com.google.protobuf.ByteString getRequest();
+    
+    // optional .MsgType msg_type = 2;
+    boolean hasMsgType();
+    com.pivotal.hamster.proto.HamsterProtos.MsgType getMsgType();
+  }
+  public static final class HamsterHnpRequestProto extends
+      com.google.protobuf.GeneratedMessage
+      implements HamsterHnpRequestProtoOrBuilder {
+    // Use HamsterHnpRequestProto.newBuilder() to construct.
+    private HamsterHnpRequestProto(Builder builder) {
+      super(builder);
+    }
+    private HamsterHnpRequestProto(boolean noInit) {}
+    
+    private static final HamsterHnpRequestProto defaultInstance;
+    public static HamsterHnpRequestProto getDefaultInstance() {
+      return defaultInstance;
+    }
+    
+    public HamsterHnpRequestProto getDefaultInstanceForType() {
+      return defaultInstance;
+    }
+    
+    public static final com.google.protobuf.Descriptors.Descriptor
+        getDescriptor() {
+      return com.pivotal.hamster.proto.HamsterProtos.internal_static_HamsterHnpRequestProto_descriptor;
+    }
+    
+    protected com.google.protobuf.GeneratedMessage.FieldAccessorTable
+        internalGetFieldAccessorTable() {
+      return com.pivotal.hamster.proto.HamsterProtos.internal_static_HamsterHnpRequestProto_fieldAccessorTable;
+    }
+    
+    private int bitField0_;
+    // optional bytes request = 1;
+    public static final int REQUEST_FIELD_NUMBER = 1;
+    private com.google.protobuf.ByteString request_;
+    public boolean hasRequest() {
+      return ((bitField0_ & 0x00000001) == 0x00000001);
+    }
+    public com.google.protobuf.ByteString getRequest() {
+      return request_;
+    }
+    
+    // optional .MsgType msg_type = 2;
+    public static final int MSG_TYPE_FIELD_NUMBER = 2;
+    private com.pivotal.hamster.proto.HamsterProtos.MsgType msgType_;
+    public boolean hasMsgType() {
+      return ((bitField0_ & 0x00000002) == 0x00000002);
+    }
+    public com.pivotal.hamster.proto.HamsterProtos.MsgType getMsgType() {
+      return msgType_;
+    }
+    
+    private void initFields() {
+      request_ = com.google.protobuf.ByteString.EMPTY;
+      msgType_ = com.pivotal.hamster.proto.HamsterProtos.MsgType.UNKNOWN;
+    }
+    private byte memoizedIsInitialized = -1;
+    public final boolean isInitialized() {
+      byte isInitialized = memoizedIsInitialized;
+      if (isInitialized != -1) return isInitialized == 1;
+      
+      memoizedIsInitialized = 1;
+      return true;
+    }
+    
+    public void writeTo(com.google.protobuf.CodedOutputStream output)
+                        throws java.io.IOException {
+      getSerializedSize();
+      if (((bitField0_ & 0x00000001) == 0x00000001)) {
+        output.writeBytes(1, request_);
+      }
+      if (((bitField0_ & 0x00000002) == 0x00000002)) {
+        output.writeEnum(2, msgType_.getNumber());
+      }
+      getUnknownFields().writeTo(output);
+    }
+    
+    private int memoizedSerializedSize = -1;
+    public int getSerializedSize() {
+      int size = memoizedSerializedSize;
+      if (size != -1) return size;
+    
+      size = 0;
+      if (((bitField0_ & 0x00000001) == 0x00000001)) {
+        size += com.google.protobuf.CodedOutputStream
+          .computeBytesSize(1, request_);
+      }
+      if (((bitField0_ & 0x00000002) == 0x00000002)) {
+        size += com.google.protobuf.CodedOutputStream
+          .computeEnumSize(2, msgType_.getNumber());
+      }
+      size += getUnknownFields().getSerializedSize();
+      memoizedSerializedSize = size;
+      return size;
+    }
+    
+    private static final long serialVersionUID = 0L;
+    @java.lang.Override
+    protected java.lang.Object writeReplace()
+        throws java.io.ObjectStreamException {
+      return super.writeReplace();
+    }
+    
+    @java.lang.Override
+    public boolean equals(final java.lang.Object obj) {
+      if (obj == this) {
+       return true;
+      }
+      if (!(obj instanceof com.pivotal.hamster.proto.HamsterProtos.HamsterHnpRequestProto)) {
+        return super.equals(obj);
+      }
+      com.pivotal.hamster.proto.HamsterProtos.HamsterHnpRequestProto other = (com.pivotal.hamster.proto.HamsterProtos.HamsterHnpRequestProto) obj;
+      
+      boolean result = true;
+      result = result && (hasRequest() == other.hasRequest());
+      if (hasRequest()) {
+        result = result && getRequest()
+            .equals(other.getRequest());
+      }
+      result = result && (hasMsgType() == other.hasMsgType());
+      if (hasMsgType()) {
+        result = result &&
+            (getMsgType() == other.getMsgType());
+      }
+      result = result &&
+          getUnknownFields().equals(other.getUnknownFields());
+      return result;
+    }
+    
+    @java.lang.Override
+    public int hashCode() {
+      int hash = 41;
+      hash = (19 * hash) + getDescriptorForType().hashCode();
+      if (hasRequest()) {
+        hash = (37 * hash) + REQUEST_FIELD_NUMBER;
+        hash = (53 * hash) + getRequest().hashCode();
+      }
+      if (hasMsgType()) {
+        hash = (37 * hash) + MSG_TYPE_FIELD_NUMBER;
+        hash = (53 * hash) + hashEnum(getMsgType());
+      }
+      hash = (29 * hash) + getUnknownFields().hashCode();
+      return hash;
+    }
+    
+    public static com.pivotal.hamster.proto.HamsterProtos.HamsterHnpRequestProto parseFrom(
+        com.google.protobuf.ByteString data)
+        throws com.google.protobuf.InvalidProtocolBufferException {
+      return newBuilder().mergeFrom(data).buildParsed();
+    }
+    public static com.pivotal.hamster.proto.HamsterProtos.HamsterHnpRequestProto parseFrom(
+        com.google.protobuf.ByteString data,
+        com.google.protobuf.ExtensionRegistryLite extensionRegistry)
+        throws com.google.protobuf.InvalidProtocolBufferException {
+      return newBuilder().mergeFrom(data, extensionRegistry)
+               .buildParsed();
+    }
+    public static com.pivotal.hamster.proto.HamsterProtos.HamsterHnpRequestProto parseFrom(byte[] data)
+        throws com.google.protobuf.InvalidProtocolBufferException {
+      return newBuilder().mergeFrom(data).buildParsed();
+    }
+    public static com.pivotal.hamster.proto.HamsterProtos.HamsterHnpRequestProto parseFrom(
+        byte[] data,
+        com.google.protobuf.ExtensionRegistryLite extensionRegistry)
+        throws com.google.protobuf.InvalidProtocolBufferException {
+      return newBuilder().mergeFrom(data, extensionRegistry)
+               .buildParsed();
+    }
+    public static com.pivotal.hamster.proto.HamsterProtos.HamsterHnpRequestProto parseFrom(java.io.InputStream input)
+        throws java.io.IOException {
+      return newBuilder().mergeFrom(input).buildParsed();
+    }
+    public static com.pivotal.hamster.proto.HamsterProtos.HamsterHnpRequestProto parseFrom(
+        java.io.InputStream input,
+        com.google.protobuf.ExtensionRegistryLite extensionRegistry)
+        throws java.io.IOException {
+      return newBuilder().mergeFrom(input, extensionRegistry)
+               .buildParsed();
+    }
+    public static com.pivotal.hamster.proto.HamsterProtos.HamsterHnpRequestProto parseDelimitedFrom(java.io.InputStream input)
+        throws java.io.IOException {
+      Builder builder = newBuilder();
+      if (builder.mergeDelimitedFrom(input)) {
+        return builder.buildParsed();
+      } else {
+        return null;
+      }
+    }
+    public static com.pivotal.hamster.proto.HamsterProtos.HamsterHnpRequestProto parseDelimitedFrom(
+        java.io.InputStream input,
+        com.google.protobuf.ExtensionRegistryLite extensionRegistry)
+        throws java.io.IOException {
+      Builder builder = newBuilder();
+      if (builder.mergeDelimitedFrom(input, extensionRegistry)) {
+        return builder.buildParsed();
+      } else {
+        return null;
+      }
+    }
+    public static com.pivotal.hamster.proto.HamsterProtos.HamsterHnpRequestProto parseFrom(
+        com.google.protobuf.CodedInputStream input)
+        throws java.io.IOException {
+      return newBuilder().mergeFrom(input).buildParsed();
+    }
+    public static com.pivotal.hamster.proto.HamsterProtos.HamsterHnpRequestProto parseFrom(
+        com.google.protobuf.CodedInputStream input,
+        com.google.protobuf.ExtensionRegistryLite extensionRegistry)
+        throws java.io.IOException {
+      return newBuilder().mergeFrom(input, extensionRegistry)
+               .buildParsed();
+    }
+    
+    public static Builder newBuilder() { return Builder.create(); }
+    public Builder newBuilderForType() { return newBuilder(); }
+    public static Builder newBuilder(com.pivotal.hamster.proto.HamsterProtos.HamsterHnpRequestProto prototype) {
+      return newBuilder().mergeFrom(prototype);
+    }
+    public Builder toBuilder() { return newBuilder(this); }
+    
+    @java.lang.Override
+    protected Builder newBuilderForType(
+        com.google.protobuf.GeneratedMessage.BuilderParent parent) {
+      Builder builder = new Builder(parent);
+      return builder;
+    }
+    public static final class Builder extends
+        com.google.protobuf.GeneratedMessage.Builder<Builder>
+       implements com.pivotal.hamster.proto.HamsterProtos.HamsterHnpRequestProtoOrBuilder {
+      public static final com.google.protobuf.Descriptors.Descriptor
+          getDescriptor() {
+        return com.pivotal.hamster.proto.HamsterProtos.internal_static_HamsterHnpRequestProto_descriptor;
+      }
+      
+      protected com.google.protobuf.GeneratedMessage.FieldAccessorTable
+          internalGetFieldAccessorTable() {
+        return com.pivotal.hamster.proto.HamsterProtos.internal_static_HamsterHnpRequestProto_fieldAccessorTable;
+      }
+      
+      // Construct using com.pivotal.hamster.proto.HamsterProtos.HamsterHnpRequestProto.newBuilder()
+      private Builder() {
+        maybeForceBuilderInitialization();
+      }
+      
+      private Builder(BuilderParent parent) {
+        super(parent);
+        maybeForceBuilderInitialization();
+      }
+      private void maybeForceBuilderInitialization() {
+        if (com.google.protobuf.GeneratedMessage.alwaysUseFieldBuilders) {
+        }
+      }
+      private static Builder create() {
+        return new Builder();
+      }
+      
+      public Builder clear() {
+        super.clear();
+        request_ = com.google.protobuf.ByteString.EMPTY;
+        bitField0_ = (bitField0_ & ~0x00000001);
+        msgType_ = com.pivotal.hamster.proto.HamsterProtos.MsgType.UNKNOWN;
+        bitField0_ = (bitField0_ & ~0x00000002);
+        return this;
+      }
+      
+      public Builder clone() {
+        return create().mergeFrom(buildPartial());
+      }
+      
+      public com.google.protobuf.Descriptors.Descriptor
+          getDescriptorForType() {
+        return com.pivotal.hamster.proto.HamsterProtos.HamsterHnpRequestProto.getDescriptor();
+      }
+      
+      public com.pivotal.hamster.proto.HamsterProtos.HamsterHnpRequestProto getDefaultInstanceForType() {
+        return com.pivotal.hamster.proto.HamsterProtos.HamsterHnpRequestProto.getDefaultInstance();
+      }
+      
+      public com.pivotal.hamster.proto.HamsterProtos.HamsterHnpRequestProto build() {
+        com.pivotal.hamster.proto.HamsterProtos.HamsterHnpRequestProto result = buildPartial();
+        if (!result.isInitialized()) {
+          throw newUninitializedMessageException(result);
+        }
+        return result;
+      }
+      
+      private com.pivotal.hamster.proto.HamsterProtos.HamsterHnpRequestProto buildParsed()
+          throws com.google.protobuf.InvalidProtocolBufferException {
+        com.pivotal.hamster.proto.HamsterProtos.HamsterHnpRequestProto result = buildPartial();
+        if (!result.isInitialized()) {
+          throw newUninitializedMessageException(
+            result).asInvalidProtocolBufferException();
+        }
+        return result;
+      }
+      
+      public com.pivotal.hamster.proto.HamsterProtos.HamsterHnpRequestProto buildPartial() {
+        com.pivotal.hamster.proto.HamsterProtos.HamsterHnpRequestProto result = new com.pivotal.hamster.proto.HamsterProtos.HamsterHnpRequestProto(this);
+        int from_bitField0_ = bitField0_;
+        int to_bitField0_ = 0;
+        if (((from_bitField0_ & 0x00000001) == 0x00000001)) {
+          to_bitField0_ |= 0x00000001;
+        }
+        result.request_ = request_;
+        if (((from_bitField0_ & 0x00000002) == 0x00000002)) {
+          to_bitField0_ |= 0x00000002;
+        }
+        result.msgType_ = msgType_;
+        result.bitField0_ = to_bitField0_;
+        onBuilt();
+        return result;
+      }
+      
+      public Builder mergeFrom(com.google.protobuf.Message other) {
+        if (other instanceof com.pivotal.hamster.proto.HamsterProtos.HamsterHnpRequestProto) {
+          return mergeFrom((com.pivotal.hamster.proto.HamsterProtos.HamsterHnpRequestProto)other);
+        } else {
+          super.mergeFrom(other);
+          return this;
+        }
+      }
+      
+      public Builder mergeFrom(com.pivotal.hamster.proto.HamsterProtos.HamsterHnpRequestProto other) {
+        if (other == com.pivotal.hamster.proto.HamsterProtos.HamsterHnpRequestProto.getDefaultInstance()) return this;
+        if (other.hasRequest()) {
+          setRequest(other.getRequest());
+        }
+        if (other.hasMsgType()) {
+          setMsgType(other.getMsgType());
+        }
+        this.mergeUnknownFields(other.getUnknownFields());
+        return this;
+      }
+      
+      public final boolean isInitialized() {
+        return true;
+      }
+      
+      public Builder mergeFrom(
+          com.google.protobuf.CodedInputStream input,
+          com.google.protobuf.ExtensionRegistryLite extensionRegistry)
+          throws java.io.IOException {
+        com.google.protobuf.UnknownFieldSet.Builder unknownFields =
+          com.google.protobuf.UnknownFieldSet.newBuilder(
+            this.getUnknownFields());
+        while (true) {
+          int tag = input.readTag();
+          switch (tag) {
+            case 0:
+              this.setUnknownFields(unknownFields.build());
+              onChanged();
+              return this;
+            default: {
+              if (!parseUnknownField(input, unknownFields,
+                                     extensionRegistry, tag)) {
+                this.setUnknownFields(unknownFields.build());
+                onChanged();
+                return this;
+              }
+              break;
+            }
+            case 10: {
+              bitField0_ |= 0x00000001;
+              request_ = input.readBytes();
+              break;
+            }
+            case 16: {
+              int rawValue = input.readEnum();
+              com.pivotal.hamster.proto.HamsterProtos.MsgType value = com.pivotal.hamster.proto.HamsterProtos.MsgType.valueOf(rawValue);
+              if (value == null) {
+                unknownFields.mergeVarintField(2, rawValue);
+              } else {
+                bitField0_ |= 0x00000002;
+                msgType_ = value;
+              }
+              break;
+            }
+          }
+        }
+      }
+      
+      private int bitField0_;
+      
+      // optional bytes request = 1;
+      private com.google.protobuf.ByteString request_ = com.google.protobuf.ByteString.EMPTY;
+      public boolean hasRequest() {
+        return ((bitField0_ & 0x00000001) == 0x00000001);
+      }
+      public com.google.protobuf.ByteString getRequest() {
+        return request_;
+      }
+      public Builder setRequest(com.google.protobuf.ByteString value) {
+        if (value == null) {
+    throw new NullPointerException();
+  }
+  bitField0_ |= 0x00000001;
+        request_ = value;
+        onChanged();
+        return this;
+      }
+      public Builder clearRequest() {
+        bitField0_ = (bitField0_ & ~0x00000001);
+        request_ = getDefaultInstance().getRequest();
+        onChanged();
+        return this;
+      }
+      
+      // optional .MsgType msg_type = 2;
+      private com.pivotal.hamster.proto.HamsterProtos.MsgType msgType_ = com.pivotal.hamster.proto.HamsterProtos.MsgType.UNKNOWN;
+      public boolean hasMsgType() {
+        return ((bitField0_ & 0x00000002) == 0x00000002);
+      }
+      public com.pivotal.hamster.proto.HamsterProtos.MsgType getMsgType() {
+        return msgType_;
+      }
+      public Builder setMsgType(com.pivotal.hamster.proto.HamsterProtos.MsgType value) {
+        if (value == null) {
+          throw new NullPointerException();
+        }
+        bitField0_ |= 0x00000002;
+        msgType_ = value;
+        onChanged();
+        return this;
+      }
+      public Builder clearMsgType() {
+        bitField0_ = (bitField0_ & ~0x00000002);
+        msgType_ = com.pivotal.hamster.proto.HamsterProtos.MsgType.UNKNOWN;
+        onChanged();
+        return this;
+      }
+      
+      // @@protoc_insertion_point(builder_scope:HamsterHnpRequestProto)
+    }
+    
+    static {
+      defaultInstance = new HamsterHnpRequestProto(true);
+      defaultInstance.initFields();
+    }
+    
+    // @@protoc_insertion_point(class_scope:HamsterHnpRequestProto)
   }
   
   public interface NodeResourceProtoOrBuilder
@@ -7250,6 +7777,11 @@ public final class HamsterProtos {
     com.google.protobuf.GeneratedMessage.FieldAccessorTable
       internal_static_ProcessNameProto_fieldAccessorTable;
   private static com.google.protobuf.Descriptors.Descriptor
+    internal_static_HamsterHnpRequestProto_descriptor;
+  private static
+    com.google.protobuf.GeneratedMessage.FieldAccessorTable
+      internal_static_HamsterHnpRequestProto_fieldAccessorTable;
+  private static com.google.protobuf.Descriptors.Descriptor
     internal_static_NodeResourceProto_descriptor;
   private static
     com.google.protobuf.GeneratedMessage.FieldAccessorTable
@@ -7329,30 +7861,34 @@ public final class HamsterProtos {
   static {
     java.lang.String[] descriptorData = {
       "\n\025hamster_protols.proto\"/\n\020ProcessNamePr" +
-      "oto\022\r\n\005jobid\030\001 \001(\005\022\014\n\004vpid\030\002 \001(\005\"4\n\021Node" +
-      "ResourceProto\022\021\n\thost_name\030\001 \001(\t\022\014\n\004slot" +
-      "\030\002 \001(\005\".\n\024AllocateRequestProto\022\026\n\016resour" +
-      "ce_count\030\001 \001(\005\"C\n\025AllocateResponseProto\022" +
-      "*\n\016node_resources\030\001 \003(\0132\022.NodeResourcePr" +
-      "oto\"f\n\022LaunchContextProto\022\016\n\006envars\030\001 \001(" +
-      "\t\022\014\n\004args\030\002 \001(\t\022\021\n\thost_name\030\003 \001(\t\022\037\n\004na" +
-      "me\030\004 \001(\0132\021.ProcessNameProto\"E\n\021LaunchRes" +
-      "ultProto\022\037\n\004name\030\001 \001(\0132\021.ProcessNameProt",
-      "o\022\017\n\007success\030\002 \001(\010\"B\n\022LaunchRequestProto" +
-      "\022,\n\017launch_contexts\030\001 \003(\0132\023.LaunchContex" +
-      "tProto\":\n\023LaunchResponseProto\022#\n\007results" +
-      "\030\001 \003(\0132\022.LaunchResultProto\"\027\n\025HeartbeatR" +
-      "equestProto\"l\n\022ProcessStatusProto\022\037\n\004nam" +
-      "e\030\001 \001(\0132\021.ProcessNameProto\022!\n\005state\030\002 \001(" +
-      "\0162\022.ProcessStateProto\022\022\n\nexit_value\030\003 \001(" +
-      "\005\"J\n\026HeartbeatResponseProto\0220\n\023completed" +
-      "_processes\030\001 \003(\0132\023.ProcessStatusProto\"\026\n" +
-      "\024RegisterRequestProto\"\027\n\025RegisterRespons",
-      "eProto\":\n\022FinishRequestProto\022\017\n\007succeed\030" +
-      "\001 \001(\010\022\023\n\013diagnostics\030\002 \001(\t\"\025\n\023FinishResp" +
-      "onseProto*/\n\021ProcessStateProto\022\013\n\007RUNNIN" +
-      "G\020\001\022\r\n\tCOMPLETED\020\002B0\n\031com.pivotal.hamste" +
-      "r.protoB\rHamsterProtos\210\001\001\240\001\001"
+      "oto\022\r\n\005jobid\030\001 \001(\005\022\014\n\004vpid\030\002 \001(\005\"E\n\026Hams" +
+      "terHnpRequestProto\022\017\n\007request\030\001 \001(\014\022\032\n\010m" +
+      "sg_type\030\002 \001(\0162\010.MsgType\"4\n\021NodeResourceP" +
+      "roto\022\021\n\thost_name\030\001 \001(\t\022\014\n\004slot\030\002 \001(\005\".\n" +
+      "\024AllocateRequestProto\022\026\n\016resource_count\030" +
+      "\001 \001(\005\"C\n\025AllocateResponseProto\022*\n\016node_r" +
+      "esources\030\001 \003(\0132\022.NodeResourceProto\"f\n\022La" +
+      "unchContextProto\022\016\n\006envars\030\001 \001(\t\022\014\n\004args" +
+      "\030\002 \001(\t\022\021\n\thost_name\030\003 \001(\t\022\037\n\004name\030\004 \001(\0132",
+      "\021.ProcessNameProto\"E\n\021LaunchResultProto\022" +
+      "\037\n\004name\030\001 \001(\0132\021.ProcessNameProto\022\017\n\007succ" +
+      "ess\030\002 \001(\010\"B\n\022LaunchRequestProto\022,\n\017launc" +
+      "h_contexts\030\001 \003(\0132\023.LaunchContextProto\":\n" +
+      "\023LaunchResponseProto\022#\n\007results\030\001 \003(\0132\022." +
+      "LaunchResultProto\"\027\n\025HeartbeatRequestPro" +
+      "to\"l\n\022ProcessStatusProto\022\037\n\004name\030\001 \001(\0132\021" +
+      ".ProcessNameProto\022!\n\005state\030\002 \001(\0162\022.Proce" +
+      "ssStateProto\022\022\n\nexit_value\030\003 \001(\005\"J\n\026Hear" +
+      "tbeatResponseProto\0220\n\023completed_processe",
+      "s\030\001 \003(\0132\023.ProcessStatusProto\"\026\n\024Register" +
+      "RequestProto\"\027\n\025RegisterResponseProto\":\n" +
+      "\022FinishRequestProto\022\017\n\007succeed\030\001 \001(\010\022\023\n\013" +
+      "diagnostics\030\002 \001(\t\"\025\n\023FinishResponseProto" +
+      "*J\n\007MsgType\022\013\n\007UNKNOWN\020\000\022\014\n\010ALLOCATE\020\001\022\n" +
+      "\n\006LAUNCH\020\002\022\014\n\010REGISTER\020\003\022\n\n\006FINISH\020\004*/\n\021" +
+      "ProcessStateProto\022\013\n\007RUNNING\020\001\022\r\n\tCOMPLE" +
+      "TED\020\002B0\n\031com.pivotal.hamster.protoB\rHams" +
+      "terProtos\210\001\001\240\001\001"
     };
     com.google.protobuf.Descriptors.FileDescriptor.InternalDescriptorAssigner assigner =
       new com.google.protobuf.Descriptors.FileDescriptor.InternalDescriptorAssigner() {
@@ -7367,8 +7903,16 @@ public final class HamsterProtos {
               new java.lang.String[] { "Jobid", "Vpid", },
               com.pivotal.hamster.proto.HamsterProtos.ProcessNameProto.class,
               com.pivotal.hamster.proto.HamsterProtos.ProcessNameProto.Builder.class);
-          internal_static_NodeResourceProto_descriptor =
+          internal_static_HamsterHnpRequestProto_descriptor =
             getDescriptor().getMessageTypes().get(1);
+          internal_static_HamsterHnpRequestProto_fieldAccessorTable = new
+            com.google.protobuf.GeneratedMessage.FieldAccessorTable(
+              internal_static_HamsterHnpRequestProto_descriptor,
+              new java.lang.String[] { "Request", "MsgType", },
+              com.pivotal.hamster.proto.HamsterProtos.HamsterHnpRequestProto.class,
+              com.pivotal.hamster.proto.HamsterProtos.HamsterHnpRequestProto.Builder.class);
+          internal_static_NodeResourceProto_descriptor =
+            getDescriptor().getMessageTypes().get(2);
           internal_static_NodeResourceProto_fieldAccessorTable = new
             com.google.protobuf.GeneratedMessage.FieldAccessorTable(
               internal_static_NodeResourceProto_descriptor,
@@ -7376,7 +7920,7 @@ public final class HamsterProtos {
               com.pivotal.hamster.proto.HamsterProtos.NodeResourceProto.class,
               com.pivotal.hamster.proto.HamsterProtos.NodeResourceProto.Builder.class);
           internal_static_AllocateRequestProto_descriptor =
-            getDescriptor().getMessageTypes().get(2);
+            getDescriptor().getMessageTypes().get(3);
           internal_static_AllocateRequestProto_fieldAccessorTable = new
             com.google.protobuf.GeneratedMessage.FieldAccessorTable(
               internal_static_AllocateRequestProto_descriptor,
@@ -7384,7 +7928,7 @@ public final class HamsterProtos {
               com.pivotal.hamster.proto.HamsterProtos.AllocateRequestProto.class,
               com.pivotal.hamster.proto.HamsterProtos.AllocateRequestProto.Builder.class);
           internal_static_AllocateResponseProto_descriptor =
-            getDescriptor().getMessageTypes().get(3);
+            getDescriptor().getMessageTypes().get(4);
           internal_static_AllocateResponseProto_fieldAccessorTable = new
             com.google.protobuf.GeneratedMessage.FieldAccessorTable(
               internal_static_AllocateResponseProto_descriptor,
@@ -7392,7 +7936,7 @@ public final class HamsterProtos {
               com.pivotal.hamster.proto.HamsterProtos.AllocateResponseProto.class,
               com.pivotal.hamster.proto.HamsterProtos.AllocateResponseProto.Builder.class);
           internal_static_LaunchContextProto_descriptor =
-            getDescriptor().getMessageTypes().get(4);
+            getDescriptor().getMessageTypes().get(5);
           internal_static_LaunchContextProto_fieldAccessorTable = new
             com.google.protobuf.GeneratedMessage.FieldAccessorTable(
               internal_static_LaunchContextProto_descriptor,
@@ -7400,7 +7944,7 @@ public final class HamsterProtos {
               com.pivotal.hamster.proto.HamsterProtos.LaunchContextProto.class,
               com.pivotal.hamster.proto.HamsterProtos.LaunchContextProto.Builder.class);
           internal_static_LaunchResultProto_descriptor =
-            getDescriptor().getMessageTypes().get(5);
+            getDescriptor().getMessageTypes().get(6);
           internal_static_LaunchResultProto_fieldAccessorTable = new
             com.google.protobuf.GeneratedMessage.FieldAccessorTable(
               internal_static_LaunchResultProto_descriptor,
@@ -7408,7 +7952,7 @@ public final class HamsterProtos {
               com.pivotal.hamster.proto.HamsterProtos.LaunchResultProto.class,
               com.pivotal.hamster.proto.HamsterProtos.LaunchResultProto.Builder.class);
           internal_static_LaunchRequestProto_descriptor =
-            getDescriptor().getMessageTypes().get(6);
+            getDescriptor().getMessageTypes().get(7);
           internal_static_LaunchRequestProto_fieldAccessorTable = new
             com.google.protobuf.GeneratedMessage.FieldAccessorTable(
               internal_static_LaunchRequestProto_descriptor,
@@ -7416,7 +7960,7 @@ public final class HamsterProtos {
               com.pivotal.hamster.proto.HamsterProtos.LaunchRequestProto.class,
               com.pivotal.hamster.proto.HamsterProtos.LaunchRequestProto.Builder.class);
           internal_static_LaunchResponseProto_descriptor =
-            getDescriptor().getMessageTypes().get(7);
+            getDescriptor().getMessageTypes().get(8);
           internal_static_LaunchResponseProto_fieldAccessorTable = new
             com.google.protobuf.GeneratedMessage.FieldAccessorTable(
               internal_static_LaunchResponseProto_descriptor,
@@ -7424,7 +7968,7 @@ public final class HamsterProtos {
               com.pivotal.hamster.proto.HamsterProtos.LaunchResponseProto.class,
               com.pivotal.hamster.proto.HamsterProtos.LaunchResponseProto.Builder.class);
           internal_static_HeartbeatRequestProto_descriptor =
-            getDescriptor().getMessageTypes().get(8);
+            getDescriptor().getMessageTypes().get(9);
           internal_static_HeartbeatRequestProto_fieldAccessorTable = new
             com.google.protobuf.GeneratedMessage.FieldAccessorTable(
               internal_static_HeartbeatRequestProto_descriptor,
@@ -7432,7 +7976,7 @@ public final class HamsterProtos {
               com.pivotal.hamster.proto.HamsterProtos.HeartbeatRequestProto.class,
               com.pivotal.hamster.proto.HamsterProtos.HeartbeatRequestProto.Builder.class);
           internal_static_ProcessStatusProto_descriptor =
-            getDescriptor().getMessageTypes().get(9);
+            getDescriptor().getMessageTypes().get(10);
           internal_static_ProcessStatusProto_fieldAccessorTable = new
             com.google.protobuf.GeneratedMessage.FieldAccessorTable(
               internal_static_ProcessStatusProto_descriptor,
@@ -7440,7 +7984,7 @@ public final class HamsterProtos {
               com.pivotal.hamster.proto.HamsterProtos.ProcessStatusProto.class,
               com.pivotal.hamster.proto.HamsterProtos.ProcessStatusProto.Builder.class);
           internal_static_HeartbeatResponseProto_descriptor =
-            getDescriptor().getMessageTypes().get(10);
+            getDescriptor().getMessageTypes().get(11);
           internal_static_HeartbeatResponseProto_fieldAccessorTable = new
             com.google.protobuf.GeneratedMessage.FieldAccessorTable(
               internal_static_HeartbeatResponseProto_descriptor,
@@ -7448,7 +7992,7 @@ public final class HamsterProtos {
               com.pivotal.hamster.proto.HamsterProtos.HeartbeatResponseProto.class,
               com.pivotal.hamster.proto.HamsterProtos.HeartbeatResponseProto.Builder.class);
           internal_static_RegisterRequestProto_descriptor =
-            getDescriptor().getMessageTypes().get(11);
+            getDescriptor().getMessageTypes().get(12);
           internal_static_RegisterRequestProto_fieldAccessorTable = new
             com.google.protobuf.GeneratedMessage.FieldAccessorTable(
               internal_static_RegisterRequestProto_descriptor,
@@ -7456,7 +8000,7 @@ public final class HamsterProtos {
               com.pivotal.hamster.proto.HamsterProtos.RegisterRequestProto.class,
               com.pivotal.hamster.proto.HamsterProtos.RegisterRequestProto.Builder.class);
           internal_static_RegisterResponseProto_descriptor =
-            getDescriptor().getMessageTypes().get(12);
+            getDescriptor().getMessageTypes().get(13);
           internal_static_RegisterResponseProto_fieldAccessorTable = new
             com.google.protobuf.GeneratedMessage.FieldAccessorTable(
               internal_static_RegisterResponseProto_descriptor,
@@ -7464,7 +8008,7 @@ public final class HamsterProtos {
               com.pivotal.hamster.proto.HamsterProtos.RegisterResponseProto.class,
               com.pivotal.hamster.proto.HamsterProtos.RegisterResponseProto.Builder.class);
           internal_static_FinishRequestProto_descriptor =
-            getDescriptor().getMessageTypes().get(13);
+            getDescriptor().getMessageTypes().get(14);
           internal_static_FinishRequestProto_fieldAccessorTable = new
             com.google.protobuf.GeneratedMessage.FieldAccessorTable(
               internal_static_FinishRequestProto_descriptor,
@@ -7472,7 +8016,7 @@ public final class HamsterProtos {
               com.pivotal.hamster.proto.HamsterProtos.FinishRequestProto.class,
               com.pivotal.hamster.proto.HamsterProtos.FinishRequestProto.Builder.class);
           internal_static_FinishResponseProto_descriptor =
-            getDescriptor().getMessageTypes().get(14);
+            getDescriptor().getMessageTypes().get(15);
           internal_static_FinishResponseProto_fieldAccessorTable = new
             com.google.protobuf.GeneratedMessage.FieldAccessorTable(
               internal_static_FinishResponseProto_descriptor,

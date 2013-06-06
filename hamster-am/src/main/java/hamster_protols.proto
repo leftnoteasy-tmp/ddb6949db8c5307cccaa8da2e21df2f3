@@ -12,6 +12,19 @@ message ProcessNameProto {
     optional int32 vpid = 2;
 }
 
+enum MsgType {
+    UNKNOWN = 0;
+    ALLOCATE = 1;
+    LAUNCH = 2;
+    REGISTER = 3;
+    FINISH = 4;
+}
+
+message HamsterHnpRequestProto {
+    optional bytes request = 1;
+    optional MsgType msg_type = 2;
+}
+
 /*
  * protos for allocate 
  */
