@@ -18,6 +18,7 @@ abstract public class HnpLivenessMonitor extends AbstractLivelinessMonitor<Objec
         HamsterConfig.DEFAULT_HAMSTER_HNP_LIVENESS_EXPIRE_TIME);
     setExpireInterval(expireIntvl);
     setMonitorInterval(expireIntvl / 3);
+    register("hasmter");
   }
   
 }
