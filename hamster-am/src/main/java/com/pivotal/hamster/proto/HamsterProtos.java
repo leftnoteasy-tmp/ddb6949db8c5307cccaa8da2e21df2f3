@@ -15,6 +15,7 @@ public final class HamsterProtos {
     LAUNCH(2, 2),
     REGISTER(3, 3),
     FINISH(4, 4),
+    HEARTBEAT(5, 5),
     ;
     
     public static final int UNKNOWN_VALUE = 0;
@@ -22,6 +23,7 @@ public final class HamsterProtos {
     public static final int LAUNCH_VALUE = 2;
     public static final int REGISTER_VALUE = 3;
     public static final int FINISH_VALUE = 4;
+    public static final int HEARTBEAT_VALUE = 5;
     
     
     public final int getNumber() { return value; }
@@ -33,6 +35,7 @@ public final class HamsterProtos {
         case 2: return LAUNCH;
         case 3: return REGISTER;
         case 4: return FINISH;
+        case 5: return HEARTBEAT;
         default: return null;
       }
     }
@@ -63,7 +66,7 @@ public final class HamsterProtos {
     }
     
     private static final MsgType[] VALUES = {
-      UNKNOWN, ALLOCATE, LAUNCH, REGISTER, FINISH, 
+      UNKNOWN, ALLOCATE, LAUNCH, REGISTER, FINISH, HEARTBEAT, 
     };
     
     public static MsgType valueOf(
@@ -2470,9 +2473,10 @@ public final class HamsterProtos {
   public interface LaunchContextProtoOrBuilder
       extends com.google.protobuf.MessageOrBuilder {
     
-    // optional string envars = 1;
-    boolean hasEnvars();
-    String getEnvars();
+    // repeated string envars = 1;
+    java.util.List<String> getEnvarsList();
+    int getEnvarsCount();
+    String getEnvars(int index);
     
     // optional string args = 2;
     boolean hasArgs();
@@ -2516,43 +2520,25 @@ public final class HamsterProtos {
     }
     
     private int bitField0_;
-    // optional string envars = 1;
+    // repeated string envars = 1;
     public static final int ENVARS_FIELD_NUMBER = 1;
-    private java.lang.Object envars_;
-    public boolean hasEnvars() {
-      return ((bitField0_ & 0x00000001) == 0x00000001);
+    private com.google.protobuf.LazyStringList envars_;
+    public java.util.List<String>
+        getEnvarsList() {
+      return envars_;
     }
-    public String getEnvars() {
-      java.lang.Object ref = envars_;
-      if (ref instanceof String) {
-        return (String) ref;
-      } else {
-        com.google.protobuf.ByteString bs = 
-            (com.google.protobuf.ByteString) ref;
-        String s = bs.toStringUtf8();
-        if (com.google.protobuf.Internal.isValidUtf8(bs)) {
-          envars_ = s;
-        }
-        return s;
-      }
+    public int getEnvarsCount() {
+      return envars_.size();
     }
-    private com.google.protobuf.ByteString getEnvarsBytes() {
-      java.lang.Object ref = envars_;
-      if (ref instanceof String) {
-        com.google.protobuf.ByteString b = 
-            com.google.protobuf.ByteString.copyFromUtf8((String) ref);
-        envars_ = b;
-        return b;
-      } else {
-        return (com.google.protobuf.ByteString) ref;
-      }
+    public String getEnvars(int index) {
+      return envars_.get(index);
     }
     
     // optional string args = 2;
     public static final int ARGS_FIELD_NUMBER = 2;
     private java.lang.Object args_;
     public boolean hasArgs() {
-      return ((bitField0_ & 0x00000002) == 0x00000002);
+      return ((bitField0_ & 0x00000001) == 0x00000001);
     }
     public String getArgs() {
       java.lang.Object ref = args_;
@@ -2584,7 +2570,7 @@ public final class HamsterProtos {
     public static final int HOST_NAME_FIELD_NUMBER = 3;
     private java.lang.Object hostName_;
     public boolean hasHostName() {
-      return ((bitField0_ & 0x00000004) == 0x00000004);
+      return ((bitField0_ & 0x00000002) == 0x00000002);
     }
     public String getHostName() {
       java.lang.Object ref = hostName_;
@@ -2616,7 +2602,7 @@ public final class HamsterProtos {
     public static final int NAME_FIELD_NUMBER = 4;
     private com.pivotal.hamster.proto.HamsterProtos.ProcessNameProto name_;
     public boolean hasName() {
-      return ((bitField0_ & 0x00000008) == 0x00000008);
+      return ((bitField0_ & 0x00000004) == 0x00000004);
     }
     public com.pivotal.hamster.proto.HamsterProtos.ProcessNameProto getName() {
       return name_;
@@ -2626,7 +2612,7 @@ public final class HamsterProtos {
     }
     
     private void initFields() {
-      envars_ = "";
+      envars_ = com.google.protobuf.LazyStringArrayList.EMPTY;
       args_ = "";
       hostName_ = "";
       name_ = com.pivotal.hamster.proto.HamsterProtos.ProcessNameProto.getDefaultInstance();
@@ -2643,16 +2629,16 @@ public final class HamsterProtos {
     public void writeTo(com.google.protobuf.CodedOutputStream output)
                         throws java.io.IOException {
       getSerializedSize();
-      if (((bitField0_ & 0x00000001) == 0x00000001)) {
-        output.writeBytes(1, getEnvarsBytes());
+      for (int i = 0; i < envars_.size(); i++) {
+        output.writeBytes(1, envars_.getByteString(i));
       }
-      if (((bitField0_ & 0x00000002) == 0x00000002)) {
+      if (((bitField0_ & 0x00000001) == 0x00000001)) {
         output.writeBytes(2, getArgsBytes());
       }
-      if (((bitField0_ & 0x00000004) == 0x00000004)) {
+      if (((bitField0_ & 0x00000002) == 0x00000002)) {
         output.writeBytes(3, getHostNameBytes());
       }
-      if (((bitField0_ & 0x00000008) == 0x00000008)) {
+      if (((bitField0_ & 0x00000004) == 0x00000004)) {
         output.writeMessage(4, name_);
       }
       getUnknownFields().writeTo(output);
@@ -2664,19 +2650,24 @@ public final class HamsterProtos {
       if (size != -1) return size;
     
       size = 0;
-      if (((bitField0_ & 0x00000001) == 0x00000001)) {
-        size += com.google.protobuf.CodedOutputStream
-          .computeBytesSize(1, getEnvarsBytes());
+      {
+        int dataSize = 0;
+        for (int i = 0; i < envars_.size(); i++) {
+          dataSize += com.google.protobuf.CodedOutputStream
+            .computeBytesSizeNoTag(envars_.getByteString(i));
+        }
+        size += dataSize;
+        size += 1 * getEnvarsList().size();
       }
-      if (((bitField0_ & 0x00000002) == 0x00000002)) {
+      if (((bitField0_ & 0x00000001) == 0x00000001)) {
         size += com.google.protobuf.CodedOutputStream
           .computeBytesSize(2, getArgsBytes());
       }
-      if (((bitField0_ & 0x00000004) == 0x00000004)) {
+      if (((bitField0_ & 0x00000002) == 0x00000002)) {
         size += com.google.protobuf.CodedOutputStream
           .computeBytesSize(3, getHostNameBytes());
       }
-      if (((bitField0_ & 0x00000008) == 0x00000008)) {
+      if (((bitField0_ & 0x00000004) == 0x00000004)) {
         size += com.google.protobuf.CodedOutputStream
           .computeMessageSize(4, name_);
       }
@@ -2703,11 +2694,8 @@ public final class HamsterProtos {
       com.pivotal.hamster.proto.HamsterProtos.LaunchContextProto other = (com.pivotal.hamster.proto.HamsterProtos.LaunchContextProto) obj;
       
       boolean result = true;
-      result = result && (hasEnvars() == other.hasEnvars());
-      if (hasEnvars()) {
-        result = result && getEnvars()
-            .equals(other.getEnvars());
-      }
+      result = result && getEnvarsList()
+          .equals(other.getEnvarsList());
       result = result && (hasArgs() == other.hasArgs());
       if (hasArgs()) {
         result = result && getArgs()
@@ -2732,9 +2720,9 @@ public final class HamsterProtos {
     public int hashCode() {
       int hash = 41;
       hash = (19 * hash) + getDescriptorForType().hashCode();
-      if (hasEnvars()) {
+      if (getEnvarsCount() > 0) {
         hash = (37 * hash) + ENVARS_FIELD_NUMBER;
-        hash = (53 * hash) + getEnvars().hashCode();
+        hash = (53 * hash) + getEnvarsList().hashCode();
       }
       if (hasArgs()) {
         hash = (37 * hash) + ARGS_FIELD_NUMBER;
@@ -2865,7 +2853,7 @@ public final class HamsterProtos {
       
       public Builder clear() {
         super.clear();
-        envars_ = "";
+        envars_ = com.google.protobuf.LazyStringArrayList.EMPTY;
         bitField0_ = (bitField0_ & ~0x00000001);
         args_ = "";
         bitField0_ = (bitField0_ & ~0x00000002);
@@ -2915,20 +2903,22 @@ public final class HamsterProtos {
         com.pivotal.hamster.proto.HamsterProtos.LaunchContextProto result = new com.pivotal.hamster.proto.HamsterProtos.LaunchContextProto(this);
         int from_bitField0_ = bitField0_;
         int to_bitField0_ = 0;
-        if (((from_bitField0_ & 0x00000001) == 0x00000001)) {
-          to_bitField0_ |= 0x00000001;
+        if (((bitField0_ & 0x00000001) == 0x00000001)) {
+          envars_ = new com.google.protobuf.UnmodifiableLazyStringList(
+              envars_);
+          bitField0_ = (bitField0_ & ~0x00000001);
         }
         result.envars_ = envars_;
         if (((from_bitField0_ & 0x00000002) == 0x00000002)) {
-          to_bitField0_ |= 0x00000002;
+          to_bitField0_ |= 0x00000001;
         }
         result.args_ = args_;
         if (((from_bitField0_ & 0x00000004) == 0x00000004)) {
-          to_bitField0_ |= 0x00000004;
+          to_bitField0_ |= 0x00000002;
         }
         result.hostName_ = hostName_;
         if (((from_bitField0_ & 0x00000008) == 0x00000008)) {
-          to_bitField0_ |= 0x00000008;
+          to_bitField0_ |= 0x00000004;
         }
         if (nameBuilder_ == null) {
           result.name_ = name_;
@@ -2951,8 +2941,15 @@ public final class HamsterProtos {
       
       public Builder mergeFrom(com.pivotal.hamster.proto.HamsterProtos.LaunchContextProto other) {
         if (other == com.pivotal.hamster.proto.HamsterProtos.LaunchContextProto.getDefaultInstance()) return this;
-        if (other.hasEnvars()) {
-          setEnvars(other.getEnvars());
+        if (!other.envars_.isEmpty()) {
+          if (envars_.isEmpty()) {
+            envars_ = other.envars_;
+            bitField0_ = (bitField0_ & ~0x00000001);
+          } else {
+            ensureEnvarsIsMutable();
+            envars_.addAll(other.envars_);
+          }
+          onChanged();
         }
         if (other.hasArgs()) {
           setArgs(other.getArgs());
@@ -2995,8 +2992,8 @@ public final class HamsterProtos {
               break;
             }
             case 10: {
-              bitField0_ |= 0x00000001;
-              envars_ = input.readBytes();
+              ensureEnvarsIsMutable();
+              envars_.add(input.readBytes());
               break;
             }
             case 18: {
@@ -3024,39 +3021,59 @@ public final class HamsterProtos {
       
       private int bitField0_;
       
-      // optional string envars = 1;
-      private java.lang.Object envars_ = "";
-      public boolean hasEnvars() {
-        return ((bitField0_ & 0x00000001) == 0x00000001);
+      // repeated string envars = 1;
+      private com.google.protobuf.LazyStringList envars_ = com.google.protobuf.LazyStringArrayList.EMPTY;
+      private void ensureEnvarsIsMutable() {
+        if (!((bitField0_ & 0x00000001) == 0x00000001)) {
+          envars_ = new com.google.protobuf.LazyStringArrayList(envars_);
+          bitField0_ |= 0x00000001;
+         }
       }
-      public String getEnvars() {
-        java.lang.Object ref = envars_;
-        if (!(ref instanceof String)) {
-          String s = ((com.google.protobuf.ByteString) ref).toStringUtf8();
-          envars_ = s;
-          return s;
-        } else {
-          return (String) ref;
-        }
+      public java.util.List<String>
+          getEnvarsList() {
+        return java.util.Collections.unmodifiableList(envars_);
       }
-      public Builder setEnvars(String value) {
+      public int getEnvarsCount() {
+        return envars_.size();
+      }
+      public String getEnvars(int index) {
+        return envars_.get(index);
+      }
+      public Builder setEnvars(
+          int index, String value) {
         if (value == null) {
     throw new NullPointerException();
   }
-  bitField0_ |= 0x00000001;
-        envars_ = value;
+  ensureEnvarsIsMutable();
+        envars_.set(index, value);
+        onChanged();
+        return this;
+      }
+      public Builder addEnvars(String value) {
+        if (value == null) {
+    throw new NullPointerException();
+  }
+  ensureEnvarsIsMutable();
+        envars_.add(value);
+        onChanged();
+        return this;
+      }
+      public Builder addAllEnvars(
+          java.lang.Iterable<String> values) {
+        ensureEnvarsIsMutable();
+        super.addAll(values, envars_);
         onChanged();
         return this;
       }
       public Builder clearEnvars() {
+        envars_ = com.google.protobuf.LazyStringArrayList.EMPTY;
         bitField0_ = (bitField0_ & ~0x00000001);
-        envars_ = getDefaultInstance().getEnvars();
         onChanged();
         return this;
       }
-      void setEnvars(com.google.protobuf.ByteString value) {
-        bitField0_ |= 0x00000001;
-        envars_ = value;
+      void addEnvars(com.google.protobuf.ByteString value) {
+        ensureEnvarsIsMutable();
+        envars_.add(value);
         onChanged();
       }
       
@@ -7868,7 +7885,7 @@ public final class HamsterProtos {
       "\024AllocateRequestProto\022\026\n\016resource_count\030" +
       "\001 \001(\005\"C\n\025AllocateResponseProto\022*\n\016node_r" +
       "esources\030\001 \003(\0132\022.NodeResourceProto\"f\n\022La" +
-      "unchContextProto\022\016\n\006envars\030\001 \001(\t\022\014\n\004args" +
+      "unchContextProto\022\016\n\006envars\030\001 \003(\t\022\014\n\004args" +
       "\030\002 \001(\t\022\021\n\thost_name\030\003 \001(\t\022\037\n\004name\030\004 \001(\0132",
       "\021.ProcessNameProto\"E\n\021LaunchResultProto\022" +
       "\037\n\004name\030\001 \001(\0132\021.ProcessNameProto\022\017\n\007succ" +
@@ -7884,11 +7901,11 @@ public final class HamsterProtos {
       "RequestProto\"\027\n\025RegisterResponseProto\":\n" +
       "\022FinishRequestProto\022\017\n\007succeed\030\001 \001(\010\022\023\n\013" +
       "diagnostics\030\002 \001(\t\"\025\n\023FinishResponseProto" +
-      "*J\n\007MsgType\022\013\n\007UNKNOWN\020\000\022\014\n\010ALLOCATE\020\001\022\n" +
-      "\n\006LAUNCH\020\002\022\014\n\010REGISTER\020\003\022\n\n\006FINISH\020\004*/\n\021" +
-      "ProcessStateProto\022\013\n\007RUNNING\020\001\022\r\n\tCOMPLE" +
-      "TED\020\002B0\n\031com.pivotal.hamster.protoB\rHams" +
-      "terProtos\210\001\001\240\001\001"
+      "*Y\n\007MsgType\022\013\n\007UNKNOWN\020\000\022\014\n\010ALLOCATE\020\001\022\n" +
+      "\n\006LAUNCH\020\002\022\014\n\010REGISTER\020\003\022\n\n\006FINISH\020\004\022\r\n\t" +
+      "HEARTBEAT\020\005*/\n\021ProcessStateProto\022\013\n\007RUNN" +
+      "ING\020\001\022\r\n\tCOMPLETED\020\002B0\n\031com.pivotal.hams" +
+      "ter.protoB\rHamsterProtos\210\001\001\240\001\001"
     };
     com.google.protobuf.Descriptors.FileDescriptor.InternalDescriptorAssigner assigner =
       new com.google.protobuf.Descriptors.FileDescriptor.InternalDescriptorAssigner() {

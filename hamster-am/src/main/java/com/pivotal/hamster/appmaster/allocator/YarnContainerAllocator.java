@@ -4,7 +4,6 @@ import java.io.IOException;
 import java.net.InetSocketAddress;
 import java.security.PrivilegedAction;
 import java.util.ArrayList;
-import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.ConcurrentLinkedQueue;
@@ -25,7 +24,6 @@ import org.apache.hadoop.yarn.api.protocolrecords.RegisterApplicationMasterReque
 import org.apache.hadoop.yarn.api.protocolrecords.RegisterApplicationMasterResponse;
 import org.apache.hadoop.yarn.api.records.ApplicationAccessType;
 import org.apache.hadoop.yarn.api.records.ApplicationAttemptId;
-import org.apache.hadoop.yarn.api.records.Container;
 import org.apache.hadoop.yarn.api.records.ContainerId;
 import org.apache.hadoop.yarn.api.records.FinalApplicationStatus;
 import org.apache.hadoop.yarn.api.records.Resource;
@@ -36,8 +34,8 @@ import org.apache.hadoop.yarn.factory.providers.RecordFactoryProvider;
 import org.apache.hadoop.yarn.ipc.YarnRPC;
 
 import com.pivotal.hamster.appmaster.HamsterConfig;
-import com.pivotal.hamster.appmaster.common.ProcessName;
-import com.pivotal.hamster.appmaster.common.ProcessStatus;
+import com.pivotal.hamster.appmaster.common.HamsterContainer;
+import com.pivotal.hamster.appmaster.common.CompletedContainer;
 import com.pivotal.hamster.appmaster.hnp.HnpLivenessMonitor;
 import com.pivotal.hamster.appmaster.utils.HamsterAppMasterUtils;
 
@@ -53,9 +51,9 @@ public class YarnContainerAllocator extends ContainerAllocator {
   private final RecordFactory recordFactory =
       RecordFactoryProvider.getRecordFactory(null);
   private ApplicationAttemptId applicationAttemptId;
-  private Map<ContainerId, ProcessName> procToContainer;
+
   private ConcurrentLinkedQueue<ContainerId> releaseContainerQueue;
-  private ConcurrentLinkedQueue<ProcessStatus> completedContainerQueue;
+  private ConcurrentLinkedQueue<CompletedContainer> completedContainerQueue;
   private Thread queryThread;
   private AtomicBoolean stopped;
   private boolean registered;
@@ -73,7 +71,7 @@ public class YarnContainerAllocator extends ContainerAllocator {
   }
 
   @Override
-  public Map<ProcessName, Container> allocate(int n) {
+  public Map<String, List<HamsterContainer>> allocate(int n) {
     synchronized (allocateLock) {
       // implement an algorithm to allocate from RM here, that will fill a Map<ProcessName, ContainerId>
       return null;
@@ -86,26 +84,25 @@ public class YarnContainerAllocator extends ContainerAllocator {
   }
 
   @Override
-  public ProcessStatus[] pullCompletedContainers() {
-    List<ProcessStatus> completedProcessStatus = new ArrayList<ProcessStatus>();
+  public CompletedContainer[] pullCompletedContainers() {
+    List<CompletedContainer> completedProcessStatus = new ArrayList<CompletedContainer>();
     while (!completedContainerQueue.isEmpty()) {
-      ProcessStatus ps = completedContainerQueue.remove();
+      CompletedContainer ps = completedContainerQueue.remove();
       if (ps == null) {
         break;
       }
       completedProcessStatus.add(ps);
     }
-    return completedProcessStatus.toArray(new ProcessStatus[0]);
+    return completedProcessStatus.toArray(new CompletedContainer[0]);
   }
   
   @Override
   public void init(Configuration conf) {
     this.conf = conf;
     scheduler = createSchedulerProxy();
-    procToContainer = new HashMap<ContainerId, ProcessName>();
     applicationAttemptId = HamsterAppMasterUtils.getAppAttemptIdFromEnv();
     releaseContainerQueue = new ConcurrentLinkedQueue<ContainerId>();
-    completedContainerQueue = new ConcurrentLinkedQueue<ProcessStatus>();
+    completedContainerQueue = new ConcurrentLinkedQueue<CompletedContainer>();
     stopped = new AtomicBoolean(false);
     registered = false;
     allocateLock = new Object();

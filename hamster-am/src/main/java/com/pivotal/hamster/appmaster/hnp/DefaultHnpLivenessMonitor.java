@@ -7,8 +7,8 @@ public class DefaultHnpLivenessMonitor extends HnpLivenessMonitor {
   private static final Log LOG = LogFactory.getLog(DefaultHnpLivenessMonitor.class);
 
   @Override
-  protected void expire(Object arg0) {
-    LOG.error("It's a long time that HNP hasn't contact AM, fail AM");
+  protected void expire(Object obj) {
+    LOG.error(obj.toString() + ", is expired, failed job");
     System.exit(1);
   }
 

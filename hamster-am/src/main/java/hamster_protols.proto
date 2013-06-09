@@ -18,6 +18,7 @@ enum MsgType {
     LAUNCH = 2;
     REGISTER = 3;
     FINISH = 4;
+    HEARTBEAT = 5;
 }
 
 message HamsterHnpRequestProto {
@@ -47,7 +48,7 @@ message AllocateResponseProto {
  */
 
 message LaunchContextProto {
-    optional string envars = 1;
+    repeated string envars = 1;
     optional string args = 2;
     optional string host_name = 3;
     optional ProcessNameProto name = 4;
