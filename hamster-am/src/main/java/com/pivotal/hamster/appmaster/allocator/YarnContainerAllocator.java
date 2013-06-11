@@ -6,6 +6,7 @@ import java.security.PrivilegedAction;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
+import java.util.NoSuchElementException;
 import java.util.concurrent.ConcurrentLinkedQueue;
 import java.util.concurrent.atomic.AtomicBoolean;
 
@@ -19,63 +20,73 @@ import org.apache.hadoop.security.token.TokenIdentifier;
 import org.apache.hadoop.yarn.YarnException;
 import org.apache.hadoop.yarn.api.AMRMProtocol;
 import org.apache.hadoop.yarn.api.ApplicationConstants;
+import org.apache.hadoop.yarn.api.protocolrecords.AllocateRequest;
+import org.apache.hadoop.yarn.api.protocolrecords.AllocateResponse;
 import org.apache.hadoop.yarn.api.protocolrecords.FinishApplicationMasterRequest;
 import org.apache.hadoop.yarn.api.protocolrecords.RegisterApplicationMasterRequest;
 import org.apache.hadoop.yarn.api.protocolrecords.RegisterApplicationMasterResponse;
 import org.apache.hadoop.yarn.api.records.ApplicationAccessType;
 import org.apache.hadoop.yarn.api.records.ApplicationAttemptId;
+import org.apache.hadoop.yarn.api.records.Container;
 import org.apache.hadoop.yarn.api.records.ContainerId;
 import org.apache.hadoop.yarn.api.records.FinalApplicationStatus;
 import org.apache.hadoop.yarn.api.records.Resource;
 import org.apache.hadoop.yarn.api.records.ResourceRequest;
 import org.apache.hadoop.yarn.conf.YarnConfiguration;
+import org.apache.hadoop.yarn.exceptions.YarnRemoteException;
 import org.apache.hadoop.yarn.factories.RecordFactory;
 import org.apache.hadoop.yarn.factory.providers.RecordFactoryProvider;
 import org.apache.hadoop.yarn.ipc.YarnRPC;
 
 import com.pivotal.hamster.appmaster.HamsterConfig;
-import com.pivotal.hamster.appmaster.common.HamsterContainer;
 import com.pivotal.hamster.appmaster.common.CompletedContainer;
-import com.pivotal.hamster.appmaster.hnp.HnpLivenessMonitor;
+import com.pivotal.hamster.appmaster.common.HamsterContainer;
 import com.pivotal.hamster.appmaster.utils.HamsterAppMasterUtils;
 
 public class YarnContainerAllocator extends ContainerAllocator {
   private static final Log LOG = LogFactory.getLog(YarnContainerAllocator.class);
   
-  private HnpLivenessMonitor mon;
-  private Configuration conf;
-  private AMRMProtocol scheduler;
-  private Resource minContainerCapability;
-  private Resource maxContainerCapability;
-  private Map<ApplicationAccessType, String> applicationACLs;
-  private final RecordFactory recordFactory =
+  Configuration conf;
+  AMRMProtocol scheduler;
+  Resource minContainerCapability;
+  Resource maxContainerCapability;
+  Map<ApplicationAccessType, String> applicationACLs;
+  final RecordFactory recordFactory =
       RecordFactoryProvider.getRecordFactory(null);
-  private ApplicationAttemptId applicationAttemptId;
+  ApplicationAttemptId applicationAttemptId;
 
-  private ConcurrentLinkedQueue<ContainerId> releaseContainerQueue;
-  private ConcurrentLinkedQueue<CompletedContainer> completedContainerQueue;
-  private Thread queryThread;
-  private AtomicBoolean stopped;
-  private boolean registered;
+  ConcurrentLinkedQueue<ContainerId> releaseContainerQueue;
+  ConcurrentLinkedQueue<CompletedContainer> completedContainerQueue;
+  Thread queryThread;
+  AtomicBoolean stopped;
+  boolean registered;
   // is HNP successfully completed
-  private FinalApplicationStatus hnpStatus;
-  private int rmPollInterval;
+  FinalApplicationStatus hnpStatus;
+  int rmPollInterval;
+  // we get enough containers to run this job, 
+  // containers received after allocation finished will directly released
+  AtomicBoolean allocateFinished;
   
   // allocate can either be used by "allocate resource" or "get completed container"
   // we will not make them used at the same time
-  private Object allocateLock;
+  Object allocateLock;
+  int responseId;
 
-  public YarnContainerAllocator(HnpLivenessMonitor mon) {
+  public YarnContainerAllocator() {
     super(YarnContainerAllocator.class.getName());
-    this.mon = mon;
   }
 
   @Override
   public Map<String, List<HamsterContainer>> allocate(int n) {
     synchronized (allocateLock) {
       // implement an algorithm to allocate from RM here, that will fill a Map<ProcessName, ContainerId>
-      return null;
     }
+    
+    // set allocateFinished
+    allocateFinished.getAndSet(true);
+    
+    // start completed container query thread after allocation finished
+    return null;
   }
   
   @Override
@@ -100,18 +111,20 @@ public class YarnContainerAllocator extends ContainerAllocator {
   public void init(Configuration conf) {
     this.conf = conf;
     scheduler = createSchedulerProxy();
-    applicationAttemptId = HamsterAppMasterUtils.getAppAttemptIdFromEnv();
+    setApplicationAttemptId();
     releaseContainerQueue = new ConcurrentLinkedQueue<ContainerId>();
     completedContainerQueue = new ConcurrentLinkedQueue<CompletedContainer>();
     stopped = new AtomicBoolean(false);
     registered = false;
     allocateLock = new Object();
     hnpStatus = FinalApplicationStatus.UNDEFINED;
+    responseId = 0;
+    allocateFinished = new AtomicBoolean(false);
     
     // set rmPollInterval
     rmPollInterval = conf.getInt(HamsterConfig.HAMSTER_ALLOCATOR_PULL_INTERVAL_TIME, 
         HamsterConfig.DEFAULT_HAMSTER_ALLOCATOR_PULL_INTERVAL_TIME);
-      
+          
     super.init(conf);
     
     LOG.info("init succeed");
@@ -121,7 +134,7 @@ public class YarnContainerAllocator extends ContainerAllocator {
   public void start() {
     // first register to RM
     registerToRM();
-    
+
     // start completed container query thread
     startCompletedContainerQueryThread();
     
@@ -144,6 +157,18 @@ public class YarnContainerAllocator extends ContainerAllocator {
     LOG.info("stop succeed");
   }
   
+  void handleSuccess() {
+    
+  }
+  
+  void handleFailed() {
+    
+  }
+  
+  void setApplicationAttemptId() {
+    applicationAttemptId = HamsterAppMasterUtils.getAppAttemptIdFromEnv();
+  }
+  
   void startCompletedContainerQueryThread() {
     queryThread = new Thread(new Runnable() {
 
@@ -152,14 +177,13 @@ public class YarnContainerAllocator extends ContainerAllocator {
         while (!stopped.get() && !Thread.currentThread().isInterrupted()) {
           try {
             Thread.sleep(rmPollInterval);
-            // don't need any resource request, this is a query
-            invokeAllocate(null);
-          } catch (YarnException e) {
-            LOG.fatal("Error communicating with RM:", e);
-            System.exit(1);
+            // don't need any resource request, this is a query, do it after allocateFinished
+            if (allocateFinished.get()) {
+              invokeAllocate(null);
+            }
           } catch (Exception e) {
-            LOG.fatal("Other error:", e);
-            System.exit(1);
+            handleFailure(e);
+            return;
           }
         }
       }
@@ -169,9 +193,48 @@ public class YarnContainerAllocator extends ContainerAllocator {
     queryThread.start();
   }
   
-  void invokeAllocate(List<ResourceRequest> resourceRequest) {
+  void handleFailure(Exception e) {
+    LOG.fatal(e, e);
+    System.exit(1);
+  }
+  
+  AllocateResponse invokeAllocate(List<ResourceRequest> resourceRequests) throws YarnRemoteException {
     synchronized(allocateLock) {
-      // add code to implement allocate
+      AllocateRequest request = recordFactory.newRecordInstance(AllocateRequest.class);
+      request.setApplicationAttemptId(applicationAttemptId);
+      request.setResponseId(responseId);
+      responseId++;
+      
+      if (resourceRequests != null) {
+        for (ResourceRequest rr : resourceRequests) {
+          request.addAsk(rr);
+        }
+      }
+      
+      while (!releaseContainerQueue.isEmpty()) {
+        ContainerId releaseId;
+        try {
+          releaseId = releaseContainerQueue.remove();
+        } catch (NoSuchElementException e) {
+          // just ignore;
+          break;
+        }
+        request.addRelease(releaseId);
+      }
+      
+      AllocateResponse response = scheduler.allocate(request);
+      
+      // check if we need directly put releaseId to release table
+      if (allocateFinished.get()) {
+        List<Container> allocatedContainers = response.getAMResponse().getAllocatedContainers();
+        if (allocatedContainers != null) {
+          for (Container c : allocatedContainers) {
+            releaseContainerQueue.offer(c.getId());
+          }
+        }
+      }
+      
+      return response;
     }
   }
   

@@ -12,6 +12,11 @@ public class ProcessName {
     this.vpId = proto.getVpid();
   }
   
+  public ProcessName(int jobId, int vpId) {
+    this.jobId = jobId;
+    this.vpId = vpId;
+  }
+  
   public int getJobId() {
     return jobId;
   }

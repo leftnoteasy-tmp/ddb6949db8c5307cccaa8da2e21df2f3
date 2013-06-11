@@ -139,6 +139,8 @@ public class DefaultHnpService extends HnpService {
               boolean succeed = request.getSucceed();
               String diagnotiscMsg = request.getDiagnostics();
               doFinish(os, succeed, diagnotiscMsg);
+              socket.close();
+              break;
             } else if (type == MsgType.LAUNCH) {
               // process launch
               checkStateMatch(HnpState.Allocated);
@@ -158,10 +160,9 @@ public class DefaultHnpService extends HnpService {
               doFailedResponse(os, "not a valid request type, type=" + type);
             }
           }
-          
         } catch (Exception e) {
-          LOG.fatal("exception in process socket between AM and HNP", e);
-          handleFatal();
+          handleFatal(e);
+          return;
         }
       }
       
@@ -187,8 +188,11 @@ public class DefaultHnpService extends HnpService {
     serviceThread.start();
   }
   
-  void handleFatal() {
-    System.exit(1);
+  void handleFatal(Exception e) {
+    if (state != HnpState.Finished) {
+      LOG.error(e, e);
+      System.exit(1);
+    }
   }
   
   void handleSuccess() {
@@ -384,7 +388,7 @@ public class DefaultHnpService extends HnpService {
       // get args
       String args = proto.getArgs();
       
-      LaunchContext ctx = new LaunchContext(envarMap, args, normalizedHostName, container.getContainer(), name);
+      LaunchContext ctx = new LaunchContext(envarMap, args, normalizedHostName, container.getContainer(), name, container.getResource());
       launchContexts.add(ctx);
     }
     

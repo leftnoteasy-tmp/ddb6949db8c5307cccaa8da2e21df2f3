@@ -76,8 +76,26 @@ public class MockContainer implements Container {
 
   @Override
   public NodeId getNodeId() {
-    // TODO Auto-generated method stub
-    return null;
+    return new NodeId() {
+
+      @Override
+      public String getHost() {
+        return "localhost";
+      }
+
+      @Override
+      public int getPort() {
+        return 0;
+      }
+
+      @Override
+      public void setHost(String arg0) {        
+      }
+
+      @Override
+      public void setPort(int arg0) {
+      }
+    };
   }
 
   @Override

@@ -96,11 +96,11 @@ public class HamsterAppMaster extends CompositeService {
   }
   
   ContainerAllocator getContainerAllocator() {
-    return new YarnContainerAllocator(hnpLivenessMonitor);
+    return new YarnContainerAllocator();
   }
   
   ContainerLauncher getContainerLauncher() {
-    return new YarnContainerLauncher(hnpLivenessMonitor);
+    return new YarnContainerLauncher();
   }
   
   public static void main(String[] args) {
@@ -123,6 +123,9 @@ public class HamsterAppMaster extends CompositeService {
       // init am and start
       am.init(conf);
       am.start();
+      
+      // loop all services, stop 
+      
     } catch (Throwable t) {
       LOG.fatal("Error starting Hamster App Master", t);
       System.exit(1);

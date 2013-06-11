@@ -10,4 +10,7 @@ public interface HamsterConfig {
   /* hnp pull interval */
   public static final String HAMSTER_ALLOCATOR_PULL_INTERVAL_TIME = HAMSTER_CONFIG_PREFIX + "pull.rm-interval-ms";
   public static final int DEFAULT_HAMSTER_ALLOCATOR_PULL_INTERVAL_TIME = 5000; // 5 sec
+  
+  /* file name for serialized pb file */
+  public static final String HAMSTER_PB_FILE = "hamster_localresource_pb";
 }

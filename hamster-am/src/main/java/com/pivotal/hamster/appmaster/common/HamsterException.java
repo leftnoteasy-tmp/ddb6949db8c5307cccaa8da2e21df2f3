@@ -8,5 +8,9 @@ public class HamsterException extends YarnException {
   public HamsterException(String message) {
     super(message);
   }
+  
+  public HamsterException(Throwable t) {
+    super(t);
+  }
 
 }

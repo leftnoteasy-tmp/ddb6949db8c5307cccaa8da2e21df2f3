@@ -1,6 +1,5 @@
 package com.pivotal.hamster.appmaster.hnp;
 
-import java.io.ByteArrayOutputStream;
 import java.io.DataInputStream;
 import java.io.DataOutputStream;
 import java.io.IOException;
@@ -25,6 +24,7 @@ import com.pivotal.hamster.appmaster.common.MockContainer;
 import com.pivotal.hamster.appmaster.hnp.DefaultHnpService.HnpState;
 import com.pivotal.hamster.appmaster.launcher.ContainerLauncher;
 import com.pivotal.hamster.appmaster.launcher.MockContainerLauncher;
+import com.pivotal.hamster.appmaster.ut.UTUtils;
 import com.pivotal.hamster.proto.HamsterProtos.AllocateRequestProto;
 import com.pivotal.hamster.proto.HamsterProtos.AllocateResponseProto;
 import com.pivotal.hamster.proto.HamsterProtos.FinishRequestProto;
@@ -54,7 +54,7 @@ public class HnpServiceTest {
     }
     
     @Override
-    void handleFatal() {
+    void handleFatal(Exception e) {
       completed = true;
       failed = true;
     }
@@ -150,13 +150,13 @@ public class HnpServiceTest {
     // 1 - mock and set allocate result
     Map<String, List<HamsterContainer>> allocateResult = new HashMap<String, List<HamsterContainer>>();
     List<HamsterContainer> host1Containers = new ArrayList<HamsterContainer>();
-    host1Containers.add(new HamsterContainer(new MockContainer(0)));
-    host1Containers.add(new HamsterContainer(new MockContainer(1)));
-    host1Containers.add(new HamsterContainer(new MockContainer(2)));
+    host1Containers.add(new HamsterContainer(new MockContainer(0), UTUtils.GetDefaultResource()));
+    host1Containers.add(new HamsterContainer(new MockContainer(1), UTUtils.GetDefaultResource()));
+    host1Containers.add(new HamsterContainer(new MockContainer(2), UTUtils.GetDefaultResource()));
     allocateResult.put("host1", host1Containers);
     List<HamsterContainer> host2Containers = new ArrayList<HamsterContainer>();
-    host2Containers.add(new HamsterContainer(new MockContainer(3)));
-    host2Containers.add(new HamsterContainer(new MockContainer(4)));
+    host2Containers.add(new HamsterContainer(new MockContainer(3), UTUtils.GetDefaultResource()));
+    host2Containers.add(new HamsterContainer(new MockContainer(4), UTUtils.GetDefaultResource()));
     allocateResult.put("host2", host2Containers);
     allocator.setAllocateResult(allocateResult);
     
