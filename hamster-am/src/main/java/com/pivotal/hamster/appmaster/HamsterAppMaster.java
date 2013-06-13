@@ -41,6 +41,7 @@ public class HamsterAppMaster extends CompositeService {
   private HnpLauncher hnpLauncher;
   private AsyncDispatcher dispatcher;
   private HnpService hnpService;
+  private String[] args;
   
   // The shutdown hook that runs when a signal is received AND during normal
   // close of the JVM.
@@ -55,9 +56,10 @@ public class HamsterAppMaster extends CompositeService {
     }
   }
 
-  public HamsterAppMaster(ApplicationAttemptId applicationAttemptId, Configuration conf) {
+  public HamsterAppMaster(ApplicationAttemptId applicationAttemptId, Configuration conf, String[] args) {
     super(HamsterAppMaster.class.getName());
     this.applicationAttemptId = applicationAttemptId;
+    this.args = args;
   }
   
   @Override
@@ -99,7 +101,7 @@ public class HamsterAppMaster extends CompositeService {
   }
   
   HnpLauncher getHnpLauncher() {
-    return new DefaultHnpLauncher(dispatcher, hnpService);
+    return new DefaultHnpLauncher(dispatcher, args);
   }
   
   HnpLivenessMonitor getHnpLivenessMonitor() {
@@ -126,7 +128,7 @@ public class HamsterAppMaster extends CompositeService {
       YarnConfiguration conf = new YarnConfiguration();
       
       // create am object
-      HamsterAppMaster am = new HamsterAppMaster(applicationAttemptId, conf);
+      HamsterAppMaster am = new HamsterAppMaster(applicationAttemptId, conf, args);
 
       // set am shutdown hook
       ShutdownHookManager.get().addShutdownHook(new HamsterAppMasterShutdownHook(am), SHUTDOWN_HOOK_PRIORITY);
