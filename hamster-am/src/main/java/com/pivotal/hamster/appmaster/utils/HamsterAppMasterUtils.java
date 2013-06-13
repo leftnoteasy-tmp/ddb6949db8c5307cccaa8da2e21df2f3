@@ -12,18 +12,23 @@ import org.apache.hadoop.yarn.api.records.ApplicationAttemptId;
 import org.apache.hadoop.yarn.api.records.ContainerId;
 import org.apache.hadoop.yarn.util.ConverterUtils;
 
-import com.pivotal.hamster.appmaster.hnp.HnpService;
-
 public class HamsterAppMasterUtils {
   private static final Log LOG = LogFactory.getLog(HamsterAppMasterUtils.class);
   
   public static ApplicationAttemptId getAppAttemptIdFromEnv() {
-    return getContainerIdFromEnv().getApplicationAttemptId();
+    ContainerId containerId = getContainerIdFromEnv();
+    if (containerId == null) {
+      return null;
+    }
+    return containerId.getApplicationAttemptId();
   }
   
   public static ContainerId getContainerIdFromEnv() {
     String containerIdStr =
         System.getenv(ApplicationConstants.AM_CONTAINER_ID_ENV);
+    if (null == containerIdStr) {
+      return null;
+    }
     ContainerId containerId = ConverterUtils.toContainerId(containerIdStr);
     return containerId;
   }

@@ -38,6 +38,7 @@ import org.apache.hadoop.yarn.exceptions.YarnRemoteException;
 import org.apache.hadoop.yarn.factories.RecordFactory;
 import org.apache.hadoop.yarn.factory.providers.RecordFactoryProvider;
 import org.apache.hadoop.yarn.ipc.YarnRPC;
+import org.apache.hadoop.yarn.util.RackResolver;
 
 import com.pivotal.hamster.appmaster.HamsterConfig;
 import com.pivotal.hamster.appmaster.common.CompletedContainer;
@@ -48,7 +49,6 @@ import com.pivotal.hamster.appmaster.utils.HamsterAppMasterUtils;
 public class YarnContainerAllocator extends ContainerAllocator {
   private static final Log LOG = LogFactory.getLog(YarnContainerAllocator.class);
   
-  Configuration conf;
   AMRMProtocol scheduler;
   Resource minContainerCapability;
   Resource maxContainerCapability;
@@ -69,6 +69,7 @@ public class YarnContainerAllocator extends ContainerAllocator {
   // containers received after allocation finished will directly released
   AtomicBoolean allocateFinished;
   Dispatcher dispatcher;
+  Resource resource;
   
   // allocate can either be used by "allocate resource" or "get completed container"
   // we will not make them used at the same time
@@ -82,15 +83,16 @@ public class YarnContainerAllocator extends ContainerAllocator {
 
   @Override
   public Map<String, List<HamsterContainer>> allocate(int n) {
-    synchronized (allocateLock) {
-      // implement an algorithm to allocate from RM here, that will fill a Map<ProcessName, ContainerId>
-    }
+    // implement an algorithm to allocate from RM here, that will fill a Map<ProcessName, ContainerId>
+    AllocationStrategy allocateStrategy = getStrategy();
+    Map<String, List<HamsterContainer>> result;
+    result = allocateStrategy.allocate(n, releaseContainerQueue, resource);
     
     // set allocateFinished
     allocateFinished.getAndSet(true);
     
     // start completed container query thread after allocation finished
-    return null;
+    return result;
   }
   
   @Override
@@ -113,7 +115,8 @@ public class YarnContainerAllocator extends ContainerAllocator {
   
   @Override
   public void init(Configuration conf) {
-    this.conf = conf;
+    super.init(conf);
+
     scheduler = createSchedulerProxy();
     setApplicationAttemptId();
     releaseContainerQueue = new ConcurrentLinkedQueue<ContainerId>();
@@ -125,12 +128,15 @@ public class YarnContainerAllocator extends ContainerAllocator {
     responseId = 0;
     allocateFinished = new AtomicBoolean(false);
     
+    RackResolver.init(conf);
+    
     // set rmPollInterval
     rmPollInterval = conf.getInt(HamsterConfig.HAMSTER_ALLOCATOR_PULL_INTERVAL_TIME, 
         HamsterConfig.DEFAULT_HAMSTER_ALLOCATOR_PULL_INTERVAL_TIME);
-          
-    super.init(conf);
     
+    // read resource request from ENV
+    readResourceFromEnv();
+              
     LOG.info("init succeed");
   }
   
@@ -161,12 +167,18 @@ public class YarnContainerAllocator extends ContainerAllocator {
     LOG.info("stop succeed");
   }
   
-  void handleSuccess() {
-    
+  AllocationStrategy getStrategy() {
+    return new ProbabilityBasedAllocationStrategy(this, true);
   }
   
-  void handleFailed() {
-    
+  void readResourceFromEnv() {
+    this.resource = recordFactory.newRecordInstance(Resource.class);
+    int memory = System.getenv().get("HAMSTER_MEM") == null ? 1024 : Integer
+        .parseInt(System.getenv().get("HAMSTER_MEM"));
+    int cpu = System.getenv().get("HAMSTER_CPU") == null ? 1 : Integer
+        .parseInt(System.getenv().get("HAMSTER_CPU"));
+    resource.setMemory(memory);
+    resource.setVirtualCores(cpu);
   }
   
   void setApplicationAttemptId() {

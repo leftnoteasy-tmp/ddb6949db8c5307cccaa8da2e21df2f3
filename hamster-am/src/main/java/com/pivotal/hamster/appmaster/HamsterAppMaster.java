@@ -33,8 +33,6 @@ public class HamsterAppMaster extends CompositeService {
    */
   public static final int SHUTDOWN_HOOK_PRIORITY = 30;
   
-  private ApplicationAttemptId applicationAttemptId;
-  private Configuration conf;
   private ContainerAllocator containerAllocator;
   private ContainerLauncher containerLauncher;
   private HnpLivenessMonitor hnpLivenessMonitor;
@@ -56,15 +54,13 @@ public class HamsterAppMaster extends CompositeService {
     }
   }
 
-  public HamsterAppMaster(ApplicationAttemptId applicationAttemptId, Configuration conf, String[] args) {
+  public HamsterAppMaster(String[] args) {
     super(HamsterAppMaster.class.getName());
-    this.applicationAttemptId = applicationAttemptId;
     this.args = args;
   }
   
   @Override
   public void init(final Configuration conf) {
-    this.conf = conf;
     
     // init event dispatcher
     dispatcher = new AsyncDispatcher();
@@ -118,17 +114,11 @@ public class HamsterAppMaster extends CompositeService {
   
   public static void main(String[] args) {
     try {
-      // get container-id/app-id
-      String containerIdStr =
-         System.getenv(ApplicationConstants.AM_CONTAINER_ID_ENV);
-      ContainerId containerId = ConverterUtils.toContainerId(containerIdStr);
-      ApplicationAttemptId applicationAttemptId = containerId.getApplicationAttemptId();
-            
       // get conf
       YarnConfiguration conf = new YarnConfiguration();
       
       // create am object
-      HamsterAppMaster am = new HamsterAppMaster(applicationAttemptId, conf, args);
+      HamsterAppMaster am = new HamsterAppMaster(args);
 
       // set am shutdown hook
       ShutdownHookManager.get().addShutdownHook(new HamsterAppMasterShutdownHook(am), SHUTDOWN_HOOK_PRIORITY);
@@ -137,8 +127,12 @@ public class HamsterAppMaster extends CompositeService {
       am.init(conf);
       am.start();
       
-      // loop all services, stop 
+      LOG.info("waiting for signal to terminate AM");
       
+      // wait for JVM terminate
+      while (true) {
+        Thread.sleep(60);
+      }
     } catch (Throwable t) {
       LOG.fatal("Error starting Hamster App Master", t);
       System.exit(1);
