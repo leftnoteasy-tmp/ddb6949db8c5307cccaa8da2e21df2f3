@@ -13,6 +13,7 @@ import java.util.Map;
 import junit.framework.Assert;
 
 import org.apache.hadoop.conf.Configuration;
+import org.apache.hadoop.yarn.event.Dispatcher;
 import org.junit.Test;
 
 import com.google.protobuf.Message;
@@ -21,9 +22,11 @@ import com.pivotal.hamster.appmaster.allocator.MockContainerAllocator;
 import com.pivotal.hamster.appmaster.common.HamsterContainer;
 import com.pivotal.hamster.appmaster.common.LaunchContext;
 import com.pivotal.hamster.appmaster.common.MockContainer;
+import com.pivotal.hamster.appmaster.event.HamsterEventType;
 import com.pivotal.hamster.appmaster.hnp.DefaultHnpService.HnpState;
 import com.pivotal.hamster.appmaster.launcher.ContainerLauncher;
 import com.pivotal.hamster.appmaster.launcher.MockContainerLauncher;
+import com.pivotal.hamster.appmaster.ut.MockDispatcher;
 import com.pivotal.hamster.appmaster.ut.UTUtils;
 import com.pivotal.hamster.proto.HamsterProtos.AllocateRequestProto;
 import com.pivotal.hamster.proto.HamsterProtos.AllocateResponseProto;
@@ -43,25 +46,14 @@ public class HnpServiceTest {
     boolean completed = false;
     boolean failed = false;
 
-    public HnpServiceUT(ContainerAllocator containerAllocator,
+    public HnpServiceUT(Dispatcher dispatcher, ContainerAllocator containerAllocator,
         ContainerLauncher containerLauncher, HnpLivenessMonitor mon) {
-      super(containerAllocator, containerLauncher, mon);
+      super(dispatcher, containerAllocator, containerLauncher, mon);
     }
     
     @Override
     String getNormalizedHost(String host) throws UnknownHostException {
       return host;
-    }
-    
-    @Override
-    void handleFatal(Exception e) {
-      completed = true;
-      failed = true;
-    }
-    
-    @Override
-    void handleSuccess() {
-      completed = true;
     }
   }
   
@@ -120,7 +112,8 @@ public class HnpServiceTest {
     MockContainerAllocator allocator = new MockContainerAllocator();
     MockContainerLauncher launcher = new MockContainerLauncher();
     MockHnpLivenessMonitor monitor = new MockHnpLivenessMonitor();
-    HnpServiceUT service = new HnpServiceUT(allocator, launcher, monitor);
+    MockDispatcher dispatcher = new MockDispatcher();
+    HnpServiceUT service = new HnpServiceUT(dispatcher, allocator, launcher, monitor);
     Assert.assertEquals(HnpState.Init, service.state);
     
     // launch service
@@ -215,7 +208,7 @@ public class HnpServiceTest {
     msg = client.readMsg();
     FinishResponseProto.parseFrom(msg);
     Thread.sleep(100); // make sure main thread mark finished
-    Assert.assertTrue(service.completed);
-    Assert.assertFalse(service.failed);
+    Assert.assertNotNull(dispatcher.getRecvedEvent());
+    Assert.assertEquals(HamsterEventType.SUCCEED, dispatcher.getRecvedEvent().getType());
   }
 }

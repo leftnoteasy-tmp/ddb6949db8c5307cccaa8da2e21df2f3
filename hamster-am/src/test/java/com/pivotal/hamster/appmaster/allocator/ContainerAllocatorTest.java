@@ -18,6 +18,7 @@ import org.apache.hadoop.yarn.api.records.AMResponse;
 import org.apache.hadoop.yarn.api.records.Container;
 import org.apache.hadoop.yarn.api.records.ContainerId;
 import org.apache.hadoop.yarn.api.records.Resource;
+import org.apache.hadoop.yarn.event.Dispatcher;
 import org.apache.hadoop.yarn.exceptions.YarnRemoteException;
 import org.apache.hadoop.yarn.factories.RecordFactory;
 import org.apache.hadoop.yarn.factory.providers.RecordFactoryProvider;
@@ -26,6 +27,7 @@ import org.junit.Test;
 
 import com.pivotal.hamster.appmaster.common.HamsterContainer;
 import com.pivotal.hamster.appmaster.common.MockContainer;
+import com.pivotal.hamster.appmaster.ut.MockDispatcher;
 
 public class ContainerAllocatorTest {
   private final RecordFactory recordFactory =
@@ -101,6 +103,10 @@ public class ContainerAllocatorTest {
   }
   
   class ContainerAllocatorUT extends YarnContainerAllocator {
+    public ContainerAllocatorUT(Dispatcher dispatcher) {
+      super(dispatcher);
+    }
+
     int containerId = 0;
     
     public AMRMProtocol getScheduler() {
@@ -125,18 +131,14 @@ public class ContainerAllocatorTest {
     void setApplicationAttemptId() {
       // do nothing
     }
-    
-    @Override
-    void handleFailure(Exception e) {
-      e.printStackTrace();
-    }
   }
   
   @Test
   public void testContainerAllocator() throws Exception {
     final int TEMP_RM_PULL_INTERVAL = 20; // 20ms 
+    MockDispatcher dispatcher = new MockDispatcher();
     
-    ContainerAllocatorUT allocator = new ContainerAllocatorUT();
+    ContainerAllocatorUT allocator = new ContainerAllocatorUT(dispatcher);
     
     // make a shorter query frequent, we will save some time in UT
     Configuration conf = new Configuration();

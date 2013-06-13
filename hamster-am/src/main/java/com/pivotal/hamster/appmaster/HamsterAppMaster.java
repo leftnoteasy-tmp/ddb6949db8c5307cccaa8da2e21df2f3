@@ -8,11 +8,14 @@ import org.apache.hadoop.yarn.api.ApplicationConstants;
 import org.apache.hadoop.yarn.api.records.ApplicationAttemptId;
 import org.apache.hadoop.yarn.api.records.ContainerId;
 import org.apache.hadoop.yarn.conf.YarnConfiguration;
+import org.apache.hadoop.yarn.event.AsyncDispatcher;
 import org.apache.hadoop.yarn.service.CompositeService;
 import org.apache.hadoop.yarn.util.ConverterUtils;
 
 import com.pivotal.hamster.appmaster.allocator.ContainerAllocator;
 import com.pivotal.hamster.appmaster.allocator.YarnContainerAllocator;
+import com.pivotal.hamster.appmaster.event.HamsterEventHandler;
+import com.pivotal.hamster.appmaster.event.HamsterEventType;
 import com.pivotal.hamster.appmaster.hnp.DefaultHnpLauncher;
 import com.pivotal.hamster.appmaster.hnp.DefaultHnpLivenessMonitor;
 import com.pivotal.hamster.appmaster.hnp.DefaultHnpService;
@@ -36,6 +39,7 @@ public class HamsterAppMaster extends CompositeService {
   private ContainerLauncher containerLauncher;
   private HnpLivenessMonitor hnpLivenessMonitor;
   private HnpLauncher hnpLauncher;
+  private AsyncDispatcher dispatcher;
   private HnpService hnpService;
   
   // The shutdown hook that runs when a signal is received AND during normal
@@ -59,6 +63,13 @@ public class HamsterAppMaster extends CompositeService {
   @Override
   public void init(final Configuration conf) {
     this.conf = conf;
+    
+    // init event dispatcher
+    dispatcher = new AsyncDispatcher();
+    addService(dispatcher);
+    
+    // register event handler
+    dispatcher.register(HamsterEventType.class, new HamsterEventHandler());
     
     // init liveness monitor
     hnpLivenessMonitor = getHnpLivenessMonitor();
@@ -84,23 +95,23 @@ public class HamsterAppMaster extends CompositeService {
   }
   
   HnpService getHnpService() {
-    return new DefaultHnpService(containerAllocator, containerLauncher, hnpLivenessMonitor);
+    return new DefaultHnpService(dispatcher, containerAllocator, containerLauncher, hnpLivenessMonitor);
   }
   
   HnpLauncher getHnpLauncher() {
-    return new DefaultHnpLauncher(hnpService);
+    return new DefaultHnpLauncher(dispatcher, hnpService);
   }
   
   HnpLivenessMonitor getHnpLivenessMonitor() {
-    return new DefaultHnpLivenessMonitor();
+    return new DefaultHnpLivenessMonitor(dispatcher);
   }
   
   ContainerAllocator getContainerAllocator() {
-    return new YarnContainerAllocator();
+    return new YarnContainerAllocator(dispatcher);
   }
   
   ContainerLauncher getContainerLauncher() {
-    return new YarnContainerLauncher();
+    return new YarnContainerLauncher(dispatcher);
   }
   
   public static void main(String[] args) {

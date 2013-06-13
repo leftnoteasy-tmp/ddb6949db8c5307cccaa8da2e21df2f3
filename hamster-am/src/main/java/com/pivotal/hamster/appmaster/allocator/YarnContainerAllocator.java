@@ -33,6 +33,7 @@ import org.apache.hadoop.yarn.api.records.FinalApplicationStatus;
 import org.apache.hadoop.yarn.api.records.Resource;
 import org.apache.hadoop.yarn.api.records.ResourceRequest;
 import org.apache.hadoop.yarn.conf.YarnConfiguration;
+import org.apache.hadoop.yarn.event.Dispatcher;
 import org.apache.hadoop.yarn.exceptions.YarnRemoteException;
 import org.apache.hadoop.yarn.factories.RecordFactory;
 import org.apache.hadoop.yarn.factory.providers.RecordFactoryProvider;
@@ -41,6 +42,7 @@ import org.apache.hadoop.yarn.ipc.YarnRPC;
 import com.pivotal.hamster.appmaster.HamsterConfig;
 import com.pivotal.hamster.appmaster.common.CompletedContainer;
 import com.pivotal.hamster.appmaster.common.HamsterContainer;
+import com.pivotal.hamster.appmaster.event.HamsterFailureEvent;
 import com.pivotal.hamster.appmaster.utils.HamsterAppMasterUtils;
 
 public class YarnContainerAllocator extends ContainerAllocator {
@@ -66,14 +68,16 @@ public class YarnContainerAllocator extends ContainerAllocator {
   // we get enough containers to run this job, 
   // containers received after allocation finished will directly released
   AtomicBoolean allocateFinished;
+  Dispatcher dispatcher;
   
   // allocate can either be used by "allocate resource" or "get completed container"
   // we will not make them used at the same time
   Object allocateLock;
   int responseId;
 
-  public YarnContainerAllocator() {
+  public YarnContainerAllocator(Dispatcher dispatcher) {
     super(YarnContainerAllocator.class.getName());
+    this.dispatcher = dispatcher;
   }
 
   @Override
@@ -182,7 +186,7 @@ public class YarnContainerAllocator extends ContainerAllocator {
               invokeAllocate(null);
             }
           } catch (Exception e) {
-            handleFailure(e);
+            dispatcher.getEventHandler().handle(new HamsterFailureEvent(e, "exception in allocate"));
             return;
           }
         }
@@ -191,11 +195,6 @@ public class YarnContainerAllocator extends ContainerAllocator {
     });
     
     queryThread.start();
-  }
-  
-  void handleFailure(Exception e) {
-    LOG.fatal(e, e);
-    System.exit(1);
   }
   
   AllocateResponse invokeAllocate(List<ResourceRequest> resourceRequests) throws YarnRemoteException {

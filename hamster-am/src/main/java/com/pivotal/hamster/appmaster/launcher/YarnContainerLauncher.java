@@ -32,6 +32,7 @@ import org.apache.hadoop.yarn.api.records.ContainerLaunchContext;
 import org.apache.hadoop.yarn.api.records.ContainerToken;
 import org.apache.hadoop.yarn.api.records.LocalResource;
 import org.apache.hadoop.yarn.api.records.impl.pb.LocalResourcePBImpl;
+import org.apache.hadoop.yarn.event.Dispatcher;
 import org.apache.hadoop.yarn.factories.RecordFactory;
 import org.apache.hadoop.yarn.factory.providers.RecordFactoryProvider;
 import org.apache.hadoop.yarn.ipc.YarnRPC;
@@ -52,6 +53,7 @@ public class YarnContainerLauncher extends ContainerLauncher {
   private final RecordFactory recordFactory =
       RecordFactoryProvider.getRecordFactory(null);
   Map<String, LocalResource> localResources;
+  Dispatcher dispatcher;
   
   class YarnContainerLaunchTask implements Callable<Boolean> {
     LaunchContext ctx;
@@ -118,8 +120,9 @@ public class YarnContainerLauncher extends ContainerLauncher {
     }
   }
   
-  public YarnContainerLauncher() {
+  public YarnContainerLauncher(Dispatcher dispatcher) {
     super(YarnContainerLauncher.class.getName());
+    this.dispatcher = dispatcher;
   }
   
   @Override
@@ -151,7 +154,6 @@ public class YarnContainerLauncher extends ContainerLauncher {
       return null;
     }
 
-    // TODO, make thread count configurable
     ExecutorService executor = Executors.newFixedThreadPool(4);
 
     // result

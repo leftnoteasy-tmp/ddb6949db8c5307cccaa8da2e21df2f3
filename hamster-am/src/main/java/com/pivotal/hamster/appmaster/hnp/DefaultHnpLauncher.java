@@ -1,9 +1,12 @@
 package com.pivotal.hamster.appmaster.hnp;
 
+import org.apache.hadoop.yarn.event.Dispatcher;
+
 public class DefaultHnpLauncher extends HnpLauncher {
-  public HnpService hnpService;
+  HnpService hnpService;
+  Dispatcher dispatcher;
   
-  public DefaultHnpLauncher(HnpService hnpService) {
+  public DefaultHnpLauncher(Dispatcher dispatcher, HnpService hnpService) {
     super(DefaultHnpLauncher.class.getName());
     this.hnpService = hnpService;
   }

@@ -1,6 +1,5 @@
 package com.pivotal.hamster.appmaster.launcher;
 
-import java.io.File;
 import java.io.IOException;
 import java.util.Map;
 
@@ -17,15 +16,16 @@ import org.apache.hadoop.yarn.api.protocolrecords.StopContainerResponse;
 import org.apache.hadoop.yarn.api.records.ContainerId;
 import org.apache.hadoop.yarn.api.records.ContainerToken;
 import org.apache.hadoop.yarn.api.records.LocalResource;
+import org.apache.hadoop.yarn.event.Dispatcher;
 import org.apache.hadoop.yarn.exceptions.YarnRemoteException;
 import org.apache.hadoop.yarn.factories.RecordFactory;
 import org.apache.hadoop.yarn.factory.providers.RecordFactoryProvider;
 import org.junit.Test;
 
-import com.pivotal.hamster.appmaster.HamsterConfig;
 import com.pivotal.hamster.appmaster.common.LaunchContext;
 import com.pivotal.hamster.appmaster.common.MockContainer;
 import com.pivotal.hamster.appmaster.common.ProcessName;
+import com.pivotal.hamster.appmaster.ut.MockDispatcher;
 import com.pivotal.hamster.appmaster.ut.UTUtils;
 
 public class ContainerLauncherTest {
@@ -75,13 +75,13 @@ public class ContainerLauncherTest {
   class ContainerLauncherUT extends YarnContainerLauncher {
     MockContainerManager cm;
   
-    public ContainerLauncherUT() {
-      super();
+    public ContainerLauncherUT(Dispatcher dispatcher) {
+      super(dispatcher);
       cm = new MockContainerManager(false);
     }
     
-    public ContainerLauncherUT(boolean failLaunch) {
-      super();
+    public ContainerLauncherUT(Dispatcher dispatcher, boolean failLaunch) {
+      super(dispatcher);
       cm = new MockContainerManager(failLaunch);
     }
     
@@ -99,7 +99,8 @@ public class ContainerLauncherTest {
   
   @Test
   public void testContainerLauncher() {
-    ContainerLauncherUT launcher = new ContainerLauncherUT();
+    MockDispatcher dispatcher = new MockDispatcher();
+    ContainerLauncherUT launcher = new ContainerLauncherUT(dispatcher);
     
     // mock launch context
     LaunchContext[] ctx = new LaunchContext[1024];
@@ -118,7 +119,7 @@ public class ContainerLauncherTest {
     }
     
     // launch will be failed
-    launcher = new ContainerLauncherUT(true);
+    launcher = new ContainerLauncherUT(dispatcher, true);
     
     // launch and get result
     launchResult = launcher.launch(ctx);

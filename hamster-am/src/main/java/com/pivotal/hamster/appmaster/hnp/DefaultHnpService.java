@@ -19,14 +19,18 @@ import org.apache.commons.logging.LogFactory;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.yarn.YarnException;
 import org.apache.hadoop.yarn.api.records.FinalApplicationStatus;
+import org.apache.hadoop.yarn.event.Dispatcher;
 
 import com.google.protobuf.Message;
 import com.pivotal.hamster.appmaster.allocator.ContainerAllocator;
+import com.pivotal.hamster.appmaster.common.CompletedContainer;
 import com.pivotal.hamster.appmaster.common.HamsterContainer;
 import com.pivotal.hamster.appmaster.common.HamsterException;
 import com.pivotal.hamster.appmaster.common.LaunchContext;
 import com.pivotal.hamster.appmaster.common.ProcessName;
-import com.pivotal.hamster.appmaster.common.CompletedContainer;
+import com.pivotal.hamster.appmaster.event.HamsterEvent;
+import com.pivotal.hamster.appmaster.event.HamsterEventType;
+import com.pivotal.hamster.appmaster.event.HamsterFailureEvent;
 import com.pivotal.hamster.appmaster.launcher.ContainerLauncher;
 import com.pivotal.hamster.appmaster.utils.HamsterAppMasterUtils;
 import com.pivotal.hamster.proto.HamsterProtos.AllocateRequestProto;
@@ -58,6 +62,7 @@ public class DefaultHnpService extends HnpService {
   Map<String, List<HamsterContainer>> allocateResult;
   Map<Integer, ProcessName> containerIdToName;
   HnpState state = HnpState.Init;
+  Dispatcher dispatcher;
   
   enum HnpState {
     Init,
@@ -66,11 +71,13 @@ public class DefaultHnpService extends HnpService {
     Finished
   }
   
-  public DefaultHnpService(ContainerAllocator containerAllocator, 
+  public DefaultHnpService(Dispatcher dispatcher,
+      ContainerAllocator containerAllocator, 
       ContainerLauncher containerLauncher, HnpLivenessMonitor mon) {
     super(DefaultHnpService.class.getName());
     this.containerAllocator = containerAllocator;
     this.containerLauncher = containerLauncher;
+    this.dispatcher = dispatcher;
     this.mon = mon;
     
     allocateResult = null;
@@ -161,7 +168,7 @@ public class DefaultHnpService extends HnpService {
             }
           }
         } catch (Exception e) {
-          handleFatal(e);
+          dispatcher.getEventHandler().handle(new HamsterFailureEvent(e, e.getMessage()));
           return;
         }
       }
@@ -186,13 +193,6 @@ public class DefaultHnpService extends HnpService {
       
     });
     serviceThread.start();
-  }
-  
-  void handleFatal(Exception e) {
-    if (state != HnpState.Finished) {
-      LOG.error(e, e);
-      System.exit(1);
-    }
   }
   
   void handleSuccess() {
@@ -252,7 +252,8 @@ public class DefaultHnpService extends HnpService {
       LOG.info("HNP report succeed, diag=" + diag);
       doSuccessResponse(os, response);
       containerAllocator.completeHnp(FinalApplicationStatus.SUCCEEDED);
-      handleSuccess();
+      LOG.info("HNP reported succeed, terminate job");
+      dispatcher.getEventHandler().handle(new HamsterEvent(HamsterEventType.SUCCEED));
     } else {
       doSuccessResponse(os, response);
       containerAllocator.completeHnp(FinalApplicationStatus.FAILED);
