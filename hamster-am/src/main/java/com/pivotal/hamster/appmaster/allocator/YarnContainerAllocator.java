@@ -13,6 +13,7 @@ import java.util.concurrent.atomic.AtomicBoolean;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 import org.apache.hadoop.conf.Configuration;
+import org.apache.hadoop.net.NetUtils;
 import org.apache.hadoop.security.SecurityUtil;
 import org.apache.hadoop.security.UserGroupInformation;
 import org.apache.hadoop.security.token.Token;
@@ -20,13 +21,18 @@ import org.apache.hadoop.security.token.TokenIdentifier;
 import org.apache.hadoop.yarn.YarnException;
 import org.apache.hadoop.yarn.api.AMRMProtocol;
 import org.apache.hadoop.yarn.api.ApplicationConstants;
+import org.apache.hadoop.yarn.api.ClientRMProtocol;
 import org.apache.hadoop.yarn.api.protocolrecords.AllocateRequest;
 import org.apache.hadoop.yarn.api.protocolrecords.AllocateResponse;
 import org.apache.hadoop.yarn.api.protocolrecords.FinishApplicationMasterRequest;
+import org.apache.hadoop.yarn.api.protocolrecords.GetNewApplicationRequest;
 import org.apache.hadoop.yarn.api.protocolrecords.RegisterApplicationMasterRequest;
 import org.apache.hadoop.yarn.api.protocolrecords.RegisterApplicationMasterResponse;
+import org.apache.hadoop.yarn.api.protocolrecords.SubmitApplicationRequest;
 import org.apache.hadoop.yarn.api.records.ApplicationAccessType;
 import org.apache.hadoop.yarn.api.records.ApplicationAttemptId;
+import org.apache.hadoop.yarn.api.records.ApplicationId;
+import org.apache.hadoop.yarn.api.records.ApplicationSubmissionContext;
 import org.apache.hadoop.yarn.api.records.Container;
 import org.apache.hadoop.yarn.api.records.ContainerId;
 import org.apache.hadoop.yarn.api.records.FinalApplicationStatus;
@@ -43,6 +49,7 @@ import org.apache.hadoop.yarn.util.RackResolver;
 import com.pivotal.hamster.appmaster.HamsterConfig;
 import com.pivotal.hamster.appmaster.common.CompletedContainer;
 import com.pivotal.hamster.appmaster.common.HamsterContainer;
+import com.pivotal.hamster.appmaster.common.HamsterException;
 import com.pivotal.hamster.appmaster.event.HamsterFailureEvent;
 import com.pivotal.hamster.appmaster.utils.HamsterAppMasterUtils;
 
@@ -70,6 +77,7 @@ public class YarnContainerAllocator extends ContainerAllocator {
   AtomicBoolean allocateFinished;
   Dispatcher dispatcher;
   Resource resource;
+  YarnRPC rpc;
   
   // allocate can either be used by "allocate resource" or "get completed container"
   // we will not make them used at the same time
@@ -181,8 +189,40 @@ public class YarnContainerAllocator extends ContainerAllocator {
     resource.setVirtualCores(cpu);
   }
   
-  void setApplicationAttemptId() {
+  void setApplicationAttemptId() throws HamsterException {
     applicationAttemptId = HamsterAppMasterUtils.getAppAttemptIdFromEnv();
+    if (null == applicationAttemptId) {
+      try {
+        // here, we will create a YarnClient and submit an application master
+        // with
+        // UnManaged set, this will be very helpful when we debug
+        LOG.info("seems we're in debug mode, no hamster-cli involved");
+        InetSocketAddress rmAddress = NetUtils.createSocketAddr(getConfig()
+            .get(YarnConfiguration.RM_ADDRESS,
+                YarnConfiguration.DEFAULT_RM_ADDRESS));
+        ClientRMProtocol yarnClient = (ClientRMProtocol) (rpc.getProxy(
+            ClientRMProtocol.class, rmAddress, getConfig()));
+
+        // create get new application
+        GetNewApplicationRequest newRequest = recordFactory
+            .newRecordInstance(GetNewApplicationRequest.class);
+        ApplicationId appId = yarnClient.getNewApplication(newRequest)
+            .getApplicationId();
+
+        // submit application
+        SubmitApplicationRequest submitRequest = recordFactory
+            .newRecordInstance(SubmitApplicationRequest.class);
+        ApplicationSubmissionContext ctx = recordFactory
+            .newRecordInstance(ApplicationSubmissionContext.class);
+        ctx.setUnmanagedAM(true);
+        ctx.setApplicationId(appId);
+        submitRequest.setApplicationSubmissionContext(ctx);
+        yarnClient.submitApplication(submitRequest);
+      } catch (YarnRemoteException e) {
+        LOG.error("get yarn remote exception when trying to use ClientRMProtocol make AM unmanaged", e);
+        throw new HamsterException(e);
+      }
+    }
   }
   
   void startCompletedContainerQueryThread() {
@@ -281,7 +321,7 @@ public class YarnContainerAllocator extends ContainerAllocator {
 
   AMRMProtocol createSchedulerProxy() {
     final Configuration conf = getConfig();
-    final YarnRPC rpc = YarnRPC.create(conf);
+    rpc = YarnRPC.create(conf);
     final InetSocketAddress serviceAddr = conf.getSocketAddr(
         YarnConfiguration.RM_SCHEDULER_ADDRESS,
         YarnConfiguration.DEFAULT_RM_SCHEDULER_ADDRESS,
