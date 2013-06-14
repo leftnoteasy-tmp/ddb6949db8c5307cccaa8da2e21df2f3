@@ -12,6 +12,7 @@ import org.apache.hadoop.yarn.api.records.Resource;
 
 public class MockContainer implements Container {
   int id;
+  String host = null;
   
   static class MockContainerId extends ContainerId {
     int cid;
@@ -43,6 +44,11 @@ public class MockContainer implements Container {
   
   public MockContainer(int id) {
     this.id = id;
+  }
+  
+  public MockContainer(int id, String host) {
+    this.id = id;
+    this.host = host;
   }
 
   @Override
@@ -80,7 +86,7 @@ public class MockContainer implements Container {
 
       @Override
       public String getHost() {
-        return "localhost";
+        return host == null ? "localhost" : host;
       }
 
       @Override

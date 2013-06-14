@@ -33,9 +33,17 @@ public class HamsterAppMasterUtils {
     return containerId;
   }
   
-  public static String normlizeHostName(String host) throws UnknownHostException {
-    InetAddress addr = InetAddress.getByName(host);
-    return addr.getCanonicalHostName();
+  public static String normlizeHostName(String host) {
+    try {
+      InetAddress addr = InetAddress.getByName(host);
+      return addr.getHostName();
+    } catch (UnknownHostException e) {
+      return host;
+    }
+  }
+  
+  public static String getNormalizedLocalhost() throws UnknownHostException {
+    return HamsterAppMasterUtils.normlizeHostName(java.net.InetAddress.getLocalHost().getHostName());
   }
   
   public static boolean isLocalHost(String host) {

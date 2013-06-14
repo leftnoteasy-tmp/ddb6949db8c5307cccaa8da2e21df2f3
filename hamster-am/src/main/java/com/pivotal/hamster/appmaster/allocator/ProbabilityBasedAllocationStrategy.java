@@ -91,7 +91,7 @@ public class ProbabilityBasedAllocationStrategy implements AllocationStrategy {
 
     try {
       // add local node to set
-      String local = HamsterAppMasterUtils.normlizeHostName("localhost");
+      String local = HamsterAppMasterUtils.getNormalizedLocalhost();
       hostToId.put(local, nHosts);
       hostIdToContainers.put(0, new ArrayList<Container>());
       nHosts++;
@@ -141,9 +141,15 @@ public class ProbabilityBasedAllocationStrategy implements AllocationStrategy {
     for (Entry<String, Integer> entry : hostToId.entrySet()) {
       if (entry.getValue() != null) {
         List<Container> containerList = hostIdToContainers.get(entry.getValue());
-        if (containerList.size() <= 1) {
-          throw new HamsterException("this shouldn't happen, all container-list with containers <= 1 will be returned");
+        
+        if (null == containerList || containerList.isEmpty()) {
+          continue;
         }
+        
+        if ((entry.getValue() != 0) && (containerList.size() == 1)) {
+          throw new HamsterException("this shouldn't happen, all container-list with containers == 1 will be returned");
+        }
+        
         if (entry.getValue() == 0) {
           total += containerList.size();
         } else {
@@ -175,24 +181,28 @@ public class ProbabilityBasedAllocationStrategy implements AllocationStrategy {
   
   void returnPartialContainersInHostId(int hostId, int count) {
     List<Container> containers = hostIdToContainers.get(hostId);
+    List<Container> newContainers = new ArrayList<Container>();
     int size = containers.size();
     for (int i = size - count; i < size; i++) {
       releaseContainers.add(containers.get(i).getId());
-      releaseContainers.remove(i);
     }
+    for (int i = 0; i < size - count; i++) {
+      newContainers.add(containers.get(i));
+    }
+    hostIdToContainers.put(hostId, newContainers);
   }
   
   void releaseRedundantContainers() {
     int nNeedRelease = m - n;
     
     // get host id to counts, we will release host will less containers first
-    HostIdToCount[] hostIdToCounts = new HostIdToCount[hostIdToContainers.size()];
+    HostIdToCount[] hostIdToCounts = new HostIdToCount[hostIdToContainers.size() - 1];
     int idx = 0;
     for (Entry<Integer, List<Container>> entry : hostIdToContainers.entrySet()) {
       if (entry.getKey() != 0) {
-        hostIdToCounts[idx] = new HostIdToCount(entry.getKey(), entry.getValue().size());  
+        hostIdToCounts[idx] = new HostIdToCount(entry.getKey(), entry.getValue().size());
+        idx++;
       }
-      idx++;
     }
     
     // sort host by number of containers;
@@ -352,7 +362,10 @@ public class ProbabilityBasedAllocationStrategy implements AllocationStrategy {
       List<Integer> hostAskList = resourceRequests.get(p[i].host);
       if (null == hostAskList) {
         hostAskList = new ArrayList<Integer>();
+        resourceRequests.put(p[i].host, hostAskList);
         hostAskList.add(askCount);
+      } else {
+        hostAskList.set(0, hostAskList.get(0) + askCount);
       }
       
       // add rack local request
@@ -360,9 +373,10 @@ public class ProbabilityBasedAllocationStrategy implements AllocationStrategy {
       hostAskList = resourceRequests.get(rack);
       if (null == hostAskList) {
         hostAskList = new ArrayList<Integer>();
-        hostAskList.add(1);
+        hostAskList.add(askCount);
+        resourceRequests.put(rack, hostAskList);
       } else {
-        hostAskList.set(0, hostAskList.get(0) + 1);
+        hostAskList.set(0, hostAskList.get(0) + askCount);
       }
       
       y += askCount;
