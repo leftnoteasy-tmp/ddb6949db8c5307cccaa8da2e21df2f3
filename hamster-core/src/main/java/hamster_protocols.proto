@@ -1,0 +1,118 @@
+option java_package = "com.pivotal.hamster.proto";
+option java_outer_classname = "HamsterProtos";
+option java_generic_services = true;
+option java_generate_equals_and_hash = true;
+
+/*
+ * common messages
+ */
+
+message ProcessNameProto {
+    optional int32 jobid = 1;
+    optional int32 vpid = 2;
+}
+
+enum MsgType {
+    UNKNOWN = 0;
+    ALLOCATE = 1;
+    LAUNCH = 2;
+    REGISTER = 3;
+    FINISH = 4;
+    HEARTBEAT = 5;
+}
+
+message HamsterHnpRequestProto {
+    optional bytes request = 1;
+    optional MsgType msg_type = 2;
+}
+
+/*
+ * protos for allocate 
+ */
+
+message NodeResourceProto {
+    optional string host_name = 1;
+    optional int32 slot = 2;
+}
+
+message AllocateRequestProto {
+    optional int32 resource_count = 1;
+}
+
+message AllocateResponseProto {
+    repeated NodeResourceProto node_resources = 1;
+}
+
+/*
+ * protos for launch
+ */
+
+message LaunchContextProto {
+    repeated string envars = 1;
+    optional string args = 2;
+    optional string host_name = 3;
+    optional ProcessNameProto name = 4;
+}
+
+message LaunchResultProto {
+    optional ProcessNameProto name = 1;
+    optional bool success = 2;
+}
+
+message LaunchRequestProto {
+    repeated LaunchContextProto launch_contexts = 1;
+}
+
+message LaunchResponseProto {
+    repeated LaunchResultProto results = 1;
+}
+
+/*
+ * protos for heartbeat
+ */
+
+message HeartbeatRequestProto {
+
+}
+
+enum ProcessStateProto {
+    RUNNING = 1;
+    COMPLETED = 2;
+}
+
+message ProcessStatusProto {
+    optional ProcessNameProto name = 1;
+    optional ProcessStateProto state = 2;
+    optional int32 exit_value = 3;
+}
+
+message HeartbeatResponseProto {
+    repeated ProcessStatusProto completed_processes = 1;
+}
+
+/* 
+ * protos for register
+ */
+message RegisterRequestProto {
+    
+}
+
+message RegisterResponseProto {
+
+}
+
+/*
+ * protos for finish
+ */
+
+message FinishRequestProto {
+    optional bool succeed = 1;
+    optional string diagnostics = 2; 
+}
+
+message FinishResponseProto {
+
+}
+
+
+
