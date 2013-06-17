@@ -365,7 +365,7 @@ public class HamsterCliTest {
     
     // check command line
     Assert.assertEquals(ctx.getAMContainerSpec().getCommands().get(0), 
-        "mpirun -mca odls yarn -mca ess yarn -mca plm yarn -mca state yarn -mca ras yarn -np 2 hello 1><LOG_DIR>/stdout 2><LOG_DIR>/stderr");
+        "mpirun -mca odls yarn -mca plm yarn -mca ras yarn -np 2 hello 1><LOG_DIR>/stdout 2><LOG_DIR>/stderr");
   }
 
   private void assertFileExists(

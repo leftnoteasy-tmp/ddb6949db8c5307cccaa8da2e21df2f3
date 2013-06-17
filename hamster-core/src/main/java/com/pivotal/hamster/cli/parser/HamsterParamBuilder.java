@@ -202,13 +202,10 @@ public class HamsterParamBuilder {
         userParams.add("--leak-check=full");
         userParams.add("mpirun");
       }
-      
-     
+           
       // add mca params to select modules
       mcaParams.put("ras", "yarn");
       mcaParams.put("plm", "yarn");
-      mcaParams.put("ess", "yarn");
-      mcaParams.put("state", "yarn");
       mcaParams.put("odls", "yarn");
       
       // append mca parameters

@@ -66,6 +66,9 @@ public interface HamsterConfig {
   /* file name for serialized pb file */
   public static final String HAMSTER_PB_FILE = "hamster_localresource_pb";
   
+  /* umbilical port for HNP connect AM */
+  public static final String AM_UMBILICAL_PORT_ENV_KEY = "AM_UMBILICAL_PORT";
+  
   /* default value of how many proc in one node when we don't have maximum resource */
   public static final int DEFAULT_N_PROC_IN_ONE_NODE = 16;
 }

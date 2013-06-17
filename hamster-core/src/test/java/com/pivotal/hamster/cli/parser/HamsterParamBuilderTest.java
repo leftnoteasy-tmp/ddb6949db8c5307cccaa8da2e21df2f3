@@ -15,7 +15,7 @@ public class HamsterParamBuilderTest {
     HamsterParamBuilder builder = new HamsterParamBuilder();
     builder.parse(input.split(" "));
     String cmd = builder.getUserCli();
-    Assert.assertEquals("mpirun -mca odls yarn -mca xxx yyy -mca mca_aaa mca_aaa_v -mca routed hello -mca ess yarn -mca plm yarn -mca state yarn -mca ras yarn -np 2 mpi_hello hello_world 1><LOG_DIR>/stdout 2><LOG_DIR>/stderr", cmd);
+    Assert.assertEquals("mpirun -mca odls yarn -mca xxx yyy -mca mca_aaa mca_aaa_v -mca routed hello -mca plm yarn -mca ras yarn -np 2 mpi_hello hello_world 1><LOG_DIR>/stdout 2><LOG_DIR>/stderr", cmd);
     Assert.assertEquals("file.0", builder.getAddFiles().get(0));
     Assert.assertEquals("file://tmp/data/file.1#file.1", builder.getAddFiles().get(1));
     Assert.assertEquals("home/data.tar.gz#data0", builder.getAddArchives().get(0));

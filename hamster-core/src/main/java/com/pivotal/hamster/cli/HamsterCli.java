@@ -245,7 +245,7 @@ public class HamsterCli {
     LocalResource res = this.constructLocalResource(fs, publicUploadPath.toString(),
         jarFile.getName(), LocalResourceType.FILE,
         LocalResourceVisibility.PUBLIC);
-    localResources.put("hamster-cli.jar", res);
+    localResources.put("hamster-core.jar", res);
   }
   
   // check and upload if user not specified pre-install hamster package

@@ -1,9 +1,9 @@
 #!/bin/bash
 
 PARAMS=$@
-CLASSPATH=$HADOOP_CONF_DIR:$YARN_CONF_DIR:$HDFS_CONF_DIR:$HAMSTER_CLI_HOME/lib/hamster/*:$HAMSTER_CLI_HOME/lib/hamster/lib/*:$HAMSTER_CLI_HOME/conf:$CLASSPATH
+CLASSPATH=$HADOOP_CONF_DIR:$YARN_CONF_DIR:$HDFS_CONF_DIR:$HAMSTER_HOME/lib/hamster/*:$HAMSTER_HOME/lib/hamster/lib/*:$HAMSTER_HOME/conf:$CLASSPATH
 
 echo "Starting submit YARN job"
 echo "CLASSPATH:$CLASSPATH"
 
-java $JAVA_OPTS -cp $CLASSPATH com.greenplum.hamster.cli.HamsterCli $PARAMS
+java $JAVA_OPTS -cp $CLASSPATH com.pivotal.hamster.cli.HamsterCli $PARAMS

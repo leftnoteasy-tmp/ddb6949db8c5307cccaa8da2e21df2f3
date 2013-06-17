@@ -13,6 +13,7 @@ import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.yarn.event.Dispatcher;
 
 import com.pivotal.hamster.appmaster.event.HamsterFailureEvent;
+import com.pivotal.hamster.common.HamsterConfig;
 import com.pivotal.hamster.common.HamsterException;
 
 public class DefaultHnpLauncher extends HnpLauncher {
@@ -132,7 +133,7 @@ public class DefaultHnpLauncher extends HnpLauncher {
     for (Entry<String, String> entry : System.getenv().entrySet()) {
       envs.add(entry.getKey() + "=" + entry.getValue());
     }
-    envs.add("AM_UMBILICAL_PORT=" + serverPort);
+    envs.add(HamsterConfig.AM_UMBILICAL_PORT_ENV_KEY + "=" + serverPort);
     return envs.toArray(new String[0]);
   }
 }
