@@ -23,16 +23,24 @@
         </fileSet>
         <fileSet>
             <directory>${project.build.directory}</directory>
-            <outputDirectory>lib/hamster-am</outputDirectory>
+            <outputDirectory>lib/hamster</outputDirectory>
             <includes>
                 <include>*.jar</include>
             </includes>
+        </fileSet>
+        <fileSet>
+            <directory>${project.basedir}/bin</directory>
+            <outputDirectory>bin</outputDirectory>
+        </fileSet>
+        <fileSet>
+            <directory>${project.basedir}/conf</directory>
+            <outputDirectory>conf</outputDirectory>
         </fileSet>
     </fileSets>
 
     <dependencySets>
         <dependencySet>
-            <outputDirectory>lib/hamster-am/lib</outputDirectory>
+            <outputDirectory>lib/hamster/lib</outputDirectory>
             <useProjectArtifact>false</useProjectArtifact>
             <scope>runtime</scope>
         </dependencySet>

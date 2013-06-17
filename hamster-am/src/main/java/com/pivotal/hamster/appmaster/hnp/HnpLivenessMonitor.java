@@ -4,7 +4,7 @@ import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.yarn.SystemClock;
 import org.apache.hadoop.yarn.util.AbstractLivelinessMonitor;
 
-import com.pivotal.hamster.appmaster.HamsterConfig;
+import com.pivotal.hamster.common.HamsterConfig;
 
 abstract public class HnpLivenessMonitor extends AbstractLivelinessMonitor<Object> {
   public static final String MONITOR = "hamster";

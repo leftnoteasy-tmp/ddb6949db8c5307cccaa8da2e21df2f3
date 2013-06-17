@@ -12,8 +12,8 @@ import org.apache.commons.logging.LogFactory;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.yarn.event.Dispatcher;
 
-import com.pivotal.hamster.appmaster.common.HamsterException;
 import com.pivotal.hamster.appmaster.event.HamsterFailureEvent;
+import com.pivotal.hamster.common.HamsterException;
 
 public class DefaultHnpLauncher extends HnpLauncher {
   private static final Log LOG = LogFactory.getLog(DefaultHnpLauncher.class);
@@ -22,7 +22,9 @@ public class DefaultHnpLauncher extends HnpLauncher {
   Thread execThread;
   Thread errThread;
   Thread outThread;
+  HnpService service;
   String[] args;
+  int serverPort;
   
   static class StreamGobbler implements Runnable {
     BufferedReader reader;
@@ -52,15 +54,17 @@ public class DefaultHnpLauncher extends HnpLauncher {
   }
   
   
-  public DefaultHnpLauncher(Dispatcher dispatcher, String[] args) {
+  public DefaultHnpLauncher(Dispatcher dispatcher, HnpService service, String[] args) {
     super(DefaultHnpLauncher.class.getName());
     this.dispatcher = dispatcher;
     this.args = args;
+    this.service = service;
   }
 
   @Override
   public void init(Configuration conf) {
     super.init(conf);
+    this.serverPort = service.getServerPort();
   }
   
   @Override
@@ -75,7 +79,7 @@ public class DefaultHnpLauncher extends HnpLauncher {
         
         try {
           // exec process
-          proc = Runtime.getRuntime().exec(args, copyCurrentEnvs());
+          proc = Runtime.getRuntime().exec(args, copyAndSetEnvs());
           
           // get err stream and out stream
           BufferedReader bre = new BufferedReader(new InputStreamReader(
@@ -123,11 +127,12 @@ public class DefaultHnpLauncher extends HnpLauncher {
     }
   }
   
-  static String[] copyCurrentEnvs() {
+  String[] copyAndSetEnvs() {
     List<String> envs = new ArrayList<String>();
     for (Entry<String, String> entry : System.getenv().entrySet()) {
       envs.add(entry.getKey() + "=" + entry.getValue());
     }
+    envs.add("AM_UMBILICAL_PORT=" + serverPort);
     return envs.toArray(new String[0]);
   }
 }

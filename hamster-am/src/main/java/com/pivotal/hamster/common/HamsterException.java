@@ -1,4 +1,4 @@
-package com.pivotal.hamster.appmaster.common;
+package com.pivotal.hamster.common;
 
 import org.apache.hadoop.yarn.YarnException;
 

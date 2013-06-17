@@ -6,9 +6,9 @@ import java.util.Map;
 import org.apache.hadoop.yarn.api.records.FinalApplicationStatus;
 import org.apache.hadoop.yarn.service.AbstractService;
 
-import com.pivotal.hamster.appmaster.common.HamsterContainer;
-import com.pivotal.hamster.appmaster.common.HamsterException;
-import com.pivotal.hamster.appmaster.common.CompletedContainer;
+import com.pivotal.hamster.common.CompletedContainer;
+import com.pivotal.hamster.common.HamsterContainer;
+import com.pivotal.hamster.common.HamsterException;
 
 abstract public class ContainerAllocator extends AbstractService {  
   public ContainerAllocator(String name) {

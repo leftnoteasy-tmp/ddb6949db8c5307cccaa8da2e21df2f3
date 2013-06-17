@@ -10,4 +10,6 @@ abstract public class HnpService extends AbstractService {
   public HnpService(String name) {
     super(HnpService.class.getName());
   }
+  
+  abstract int getServerPort();
 }

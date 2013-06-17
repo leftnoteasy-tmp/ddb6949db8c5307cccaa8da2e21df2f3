@@ -1,4 +1,4 @@
-package com.pivotal.hamster.appmaster.common;
+package com.pivotal.hamster.common;
 
 import com.pivotal.hamster.proto.HamsterProtos.ProcessNameProto;
 

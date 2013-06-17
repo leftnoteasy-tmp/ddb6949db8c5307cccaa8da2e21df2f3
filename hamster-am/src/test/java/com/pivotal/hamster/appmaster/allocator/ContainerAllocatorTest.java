@@ -25,9 +25,9 @@ import org.apache.hadoop.yarn.factory.providers.RecordFactoryProvider;
 import org.junit.Assert;
 import org.junit.Test;
 
-import com.pivotal.hamster.appmaster.common.HamsterContainer;
 import com.pivotal.hamster.appmaster.common.MockContainer;
 import com.pivotal.hamster.appmaster.ut.MockDispatcher;
+import com.pivotal.hamster.common.HamsterContainer;
 
 public class ContainerAllocatorTest {
   private final RecordFactory recordFactory =

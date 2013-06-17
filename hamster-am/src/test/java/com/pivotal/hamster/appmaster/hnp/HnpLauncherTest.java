@@ -13,7 +13,12 @@ public class HnpLauncherTest {
   static class HnpLauncherUT extends DefaultHnpLauncher {
 
     public HnpLauncherUT(Dispatcher dispatcher, String[] args) {
-      super(dispatcher, args);
+      super(dispatcher, new HnpService("xx") {
+        @Override
+        int getServerPort() {
+          return -1;
+        }
+      }, args);
     }
     
   }

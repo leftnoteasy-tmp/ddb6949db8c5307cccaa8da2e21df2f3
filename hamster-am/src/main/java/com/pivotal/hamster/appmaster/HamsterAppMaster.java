@@ -97,7 +97,7 @@ public class HamsterAppMaster extends CompositeService {
   }
   
   HnpLauncher getHnpLauncher() {
-    return new DefaultHnpLauncher(dispatcher, args);
+    return new DefaultHnpLauncher(dispatcher, hnpService, args);
   }
   
   HnpLivenessMonitor getHnpLivenessMonitor() {

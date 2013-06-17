@@ -46,12 +46,12 @@ import org.apache.hadoop.yarn.factory.providers.RecordFactoryProvider;
 import org.apache.hadoop.yarn.ipc.YarnRPC;
 import org.apache.hadoop.yarn.util.RackResolver;
 
-import com.pivotal.hamster.appmaster.HamsterConfig;
-import com.pivotal.hamster.appmaster.common.CompletedContainer;
-import com.pivotal.hamster.appmaster.common.HamsterContainer;
-import com.pivotal.hamster.appmaster.common.HamsterException;
 import com.pivotal.hamster.appmaster.event.HamsterFailureEvent;
 import com.pivotal.hamster.appmaster.utils.HamsterAppMasterUtils;
+import com.pivotal.hamster.common.CompletedContainer;
+import com.pivotal.hamster.common.HamsterConfig;
+import com.pivotal.hamster.common.HamsterContainer;
+import com.pivotal.hamster.common.HamsterException;
 
 public class YarnContainerAllocator extends ContainerAllocator {
   private static final Log LOG = LogFactory.getLog(YarnContainerAllocator.class);

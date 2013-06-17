@@ -40,9 +40,9 @@ import org.apache.hadoop.yarn.proto.YarnProtos.LocalResourceProto;
 import org.apache.hadoop.yarn.security.ContainerTokenIdentifier;
 import org.apache.hadoop.yarn.util.ProtoUtils;
 
-import com.pivotal.hamster.appmaster.HamsterConfig;
-import com.pivotal.hamster.appmaster.common.HamsterException;
-import com.pivotal.hamster.appmaster.common.LaunchContext;
+import com.pivotal.hamster.common.HamsterConfig;
+import com.pivotal.hamster.common.HamsterException;
+import com.pivotal.hamster.common.LaunchContext;
 
 public class YarnContainerLauncher extends ContainerLauncher {
   private static final Log LOG = LogFactory.getLog(YarnContainerLauncher.class);

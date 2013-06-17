@@ -4,8 +4,8 @@ import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 import org.apache.hadoop.yarn.event.Dispatcher;
 
-import com.pivotal.hamster.appmaster.common.HamsterException;
 import com.pivotal.hamster.appmaster.event.HamsterFailureEvent;
+import com.pivotal.hamster.common.HamsterException;
 
 public class DefaultHnpLivenessMonitor extends HnpLivenessMonitor {
   private static final Log LOG = LogFactory.getLog(DefaultHnpLivenessMonitor.class);

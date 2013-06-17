@@ -1,6 +1,6 @@
 package com.pivotal.hamster.appmaster.launcher;
 
-import com.pivotal.hamster.appmaster.common.LaunchContext;
+import com.pivotal.hamster.common.LaunchContext;
 
 public class MockContainerLauncher extends ContainerLauncher {
   boolean[] result;

@@ -1,4 +1,4 @@
-package com.pivotal.hamster.appmaster.common;
+package com.pivotal.hamster.common;
 
 import java.util.Map;
 

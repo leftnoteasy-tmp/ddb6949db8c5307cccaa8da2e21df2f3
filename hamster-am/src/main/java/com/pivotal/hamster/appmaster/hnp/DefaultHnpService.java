@@ -23,16 +23,16 @@ import org.apache.hadoop.yarn.event.Dispatcher;
 
 import com.google.protobuf.Message;
 import com.pivotal.hamster.appmaster.allocator.ContainerAllocator;
-import com.pivotal.hamster.appmaster.common.CompletedContainer;
-import com.pivotal.hamster.appmaster.common.HamsterContainer;
-import com.pivotal.hamster.appmaster.common.HamsterException;
-import com.pivotal.hamster.appmaster.common.LaunchContext;
-import com.pivotal.hamster.appmaster.common.ProcessName;
 import com.pivotal.hamster.appmaster.event.HamsterEvent;
 import com.pivotal.hamster.appmaster.event.HamsterEventType;
 import com.pivotal.hamster.appmaster.event.HamsterFailureEvent;
 import com.pivotal.hamster.appmaster.launcher.ContainerLauncher;
 import com.pivotal.hamster.appmaster.utils.HamsterAppMasterUtils;
+import com.pivotal.hamster.common.CompletedContainer;
+import com.pivotal.hamster.common.HamsterContainer;
+import com.pivotal.hamster.common.HamsterException;
+import com.pivotal.hamster.common.LaunchContext;
+import com.pivotal.hamster.common.ProcessName;
 import com.pivotal.hamster.proto.HamsterProtos.AllocateRequestProto;
 import com.pivotal.hamster.proto.HamsterProtos.AllocateResponseProto;
 import com.pivotal.hamster.proto.HamsterProtos.FinishRequestProto;
@@ -431,6 +431,7 @@ public class DefaultHnpService extends HnpService {
     }
   }
   
+  @Override
   public int getServerPort() {
     return server.getLocalPort();
   }

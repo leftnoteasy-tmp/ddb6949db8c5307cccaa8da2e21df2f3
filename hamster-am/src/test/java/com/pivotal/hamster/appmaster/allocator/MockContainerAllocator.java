@@ -5,9 +5,9 @@ import java.util.Map;
 
 import org.apache.hadoop.yarn.api.records.FinalApplicationStatus;
 
-import com.pivotal.hamster.appmaster.common.HamsterContainer;
-import com.pivotal.hamster.appmaster.common.HamsterException;
-import com.pivotal.hamster.appmaster.common.CompletedContainer;
+import com.pivotal.hamster.common.CompletedContainer;
+import com.pivotal.hamster.common.HamsterContainer;
+import com.pivotal.hamster.common.HamsterException;
 
 public class MockContainerAllocator extends ContainerAllocator {
   Map<String, List<HamsterContainer>> allocateResult;
