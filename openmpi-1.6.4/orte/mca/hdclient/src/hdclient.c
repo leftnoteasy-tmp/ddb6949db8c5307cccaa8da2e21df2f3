@@ -12,6 +12,7 @@
 #include <unistd.h>
 
 #include "hdclient.h"
+#include "hdclient-constants.h"
 #include "str_utils.h"
 #include "pbc/pbc.h"
 
@@ -27,7 +28,7 @@ int orte_hdclient_init_pb_env() {
     int rc;
 
     // get pb file path
-    const char* pb_file = getenv("YARN_PB_FILE");
+    const char* pb_file = getenv(YARN_PB_FILE_ENV_KEY);
     if (!pb_file) {
         opal_output(0, "failed to get YARN_PB_FILE envar"); 
         return -1;
@@ -62,7 +63,7 @@ int orte_hdclient_connect_to_am() {
     // read host/port
     char host[1024];
     rc = gethostname(host, 1023);
-    char* port_str = getenv("AM_UMBILICAL_PORT");
+    char* port_str = getenv(AM_UMBILICAL_PORT_ENV_KEY);
     if (!port_str || (0 != rc)) {
         opal_output(0, "failed to get host or port when trying to connect to AM");
         return -1;
