@@ -81,7 +81,11 @@
 
 
 extern char** environ;
-int num_sync_daemons = 0;
+static int num_sync_daemons = 0;
+static int num_completed_daemon_procs = 0;
+static int num_completed_jdata_procs = 0;
+static bool appmaster_finished = false;
+
 
 /*
  * Local functions
@@ -110,6 +114,8 @@ static int setup_proc_env_and_argv(orte_job_t* jdata, orte_app_context_t* app,
         orte_proc_t* proc, char **argv, char **env);
 
 static void heartbeat_with_AM_cb(int fd, short event, void *data);
+static void finish_app_master();
+static void process_state_monitor_cb(int fd, short args, void *cbdata);
 
 
 /*
@@ -244,6 +250,7 @@ static int launch_daemons(orte_job_t* jdata)
     int argc;
     char **env;
     bool error_flag = false;
+    int num_launched_daemon_procs = 0;
 
     orte_job_t* daemons = orte_get_job_data_object(ORTE_PROC_MY_NAME->jobid);
 
@@ -348,6 +355,9 @@ cleanup:
             opal_argv_free(env);
         }
         if (error_flag) {
+            pbc_wmessage_delete(request_msg);
+            finish_app_master();
+            ORTE_UPDATE_EXIT_STATUS(ORTE_ERROR_DEFAULT_EXIT_CODE);
             return ORTE_ERROR;
         }
     }
@@ -357,7 +367,7 @@ cleanup:
     if (rc != 0) {
         opal_output(0, "%s plm:yarn:launch_daemons error happened when send launch proc request to AM",
                 ORTE_NAME_PRINT(ORTE_PROC_MY_NAME));
-        return ORTE_ERROR;
+        goto launch_daemons_failed;
     }
 
     /* 3. recv response and parse the msg*/
@@ -381,15 +391,14 @@ cleanup:
         opal_output(0,
                 "%s plm:yarn:launch_daemons error happened when recv launch response msg from AM",
                 ORTE_NAME_PRINT(ORTE_PROC_MY_NAME));
-        return ORTE_ERROR;
+        goto launch_daemons_failed;
     }
 
     int n = pbc_rmessage_size(response_msg, "results");
     if (n <= 0) {
         opal_output(0, "%s plm:yarn:launch_daemons got n(=%d) <= 0, please check",
                 ORTE_NAME_PRINT(ORTE_PROC_MY_NAME), n);
-        pbc_rmessage_delete(response_msg);
-        return ORTE_ERROR;
+        goto launch_daemons_failed;
     }
 
     for (i = 0; i < n; i++) {
@@ -398,62 +407,319 @@ cleanup:
             opal_output(0,
                     "%s plm:yarn:launch_daemons: error when parse returned launch results from AM",
                     ORTE_NAME_PRINT(ORTE_PROC_MY_NAME));
-            pbc_rmessage_delete(response_msg);
-            return ORTE_ERROR;
+            goto launch_daemons_failed;
         }
 
-        struct pbc_rmessage* proc_name_msg = pbc_rmessage_message(results_msg, "name", 0); //?
+        struct pbc_rmessage* proc_name_msg = pbc_rmessage_message(results_msg, "name", 0);
         if (!proc_name_msg) {
             opal_output(0,
                     "%s plm:yarn:launch_daemons: error when parse returned proc_name_msg from AM",
                     ORTE_NAME_PRINT(ORTE_PROC_MY_NAME));
-            pbc_rmessage_delete(response_msg);
-            return ORTE_ERROR;
+            goto launch_daemons_failed;
         }
 
-        orte_jobid_t jobid =  pbc_rmessage_integer(proc_name_msg, "jobid", 0, NULL);
+        orte_jobid_t local_jobid =  pbc_rmessage_integer(proc_name_msg, "jobid", 0, NULL);
         orte_vpid_t vpid = pbc_rmessage_integer(proc_name_msg, "vpid", 0, NULL);
 
         bool success = pbc_rmessage_integer(results_msg, "success", 0, NULL);
-        if (!success) {
-            daemons->state = ORTE_JOB_STATE_FAILED_TO_START;
-            pbc_rmessage_delete(response_msg);
+
+        orte_proc_t* proc = (orte_proc_t*) opal_pointer_array_get_item(daemons->procs, vpid);
+        if (success) {
+            proc->state = ORTE_PROC_STATE_RUNNING;
+            num_launched_daemon_procs++;
+        } else {
             opal_output(0,
                     "%s plm:yarn:launch_daemons: launch deamon proc failed when jobid = %u, vpid = %u",
-                    ORTE_NAME_PRINT(ORTE_PROC_MY_NAME), jobid, vpid);
-            return ORTE_ERROR;
+                    ORTE_NAME_PRINT(ORTE_PROC_MY_NAME), local_jobid, vpid);
+            proc->state = ORTE_PROC_STATE_FAILED_TO_START;
+            daemons->state = ORTE_JOB_STATE_FAILED_TO_START;
+            goto launch_daemons_failed;
         }
     }
 
-    /* 4. delete response_msg */
+    /* 4. if all daemons are launched successfully, then modify the job's state */
+    if (num_launched_daemon_procs == (daemons->num_procs-1)) {
+        jdata->state = ORTE_JOB_STATE_LAUNCHED;
+        daemons->state = ORTE_JOB_STATE_LAUNCHED;
+        OPAL_OUTPUT_VERBOSE((5, orte_ras_base_framework.framework_output,
+                        "%s plm:yarn:launch_daemons: launch daemon proc successfully with AM",
+                        ORTE_NAME_PRINT(ORTE_PROC_MY_NAME)));
+    }
+    pbc_wmessage_delete(request_msg);
     pbc_rmessage_delete(response_msg);
-
-    OPAL_OUTPUT_VERBOSE((5, orte_ras_base_framework.framework_output,
-                    "%s plm:yarnlaunch_daemons: launch daemon proc successfully with AM",
-                    ORTE_NAME_PRINT(ORTE_PROC_MY_NAME)));
-
     return ORTE_SUCCESS;
+
+launch_daemons_failed:
+    pbc_wmessage_delete(request_msg);
+    pbc_rmessage_delete(response_msg);
+    finish_app_master();
+    ORTE_UPDATE_EXIT_STATUS(ORTE_ERROR_DEFAULT_EXIT_CODE);
+    return ORTE_ERROR;
 }
+
 
 static void heartbeat_with_AM_cb(int fd, short event, void *data)
 {
+    int i, rc;
     orte_job_t *jdata = (orte_job_t*)data;
+    orte_job_t* daemons = orte_get_job_data_object(ORTE_PROC_MY_NAME->jobid);
 
-//    active_job_completed_callback = false;
-//    orte_plm_base_check_job_completed(jdata);
+    /* 1. create heartbeat request msg */
+    /*
+    message HeartbeatRequestProto {
+    }
+    */
+    struct pbc_wmessage* request_msg = pbc_wmessage_new(orte_hdclient_pb_env, "HeartbeatRequestProto");
+    if (!request_msg) {
+        opal_output(0, "%s plm:yarn:heartbeat_with_AM_cb: failed to create request_msg",
+                ORTE_NAME_PRINT(ORTE_PROC_MY_NAME));
+        return;
+    }
 
+    /* 2. send heartbeat request msg */
+    rc = orte_hdclient_send_message_and_delete(request_msg, HAMSTER_MSG_HEARTBEAT);
+    if (rc != 0) {
+        opal_output(0,
+                "%s plm:yarn:heartbeat_with_AM_cb: error happened when send request_msg to AM",
+                ORTE_NAME_PRINT(ORTE_PROC_MY_NAME));
+        goto cleanup;
+    }
 
+    /* 3. recv response and parse the msg*/
+    /*
+     message HeartbeatResponseProto {
+         repeated ProcessStatusProto completed_processes = 1;
+     }
 
-    /* next heartbeat */
-    opal_event_t *ev = NULL;
-    ev = (opal_event_t*) malloc(sizeof(opal_event_t));
+     message ProcessStatusProto {
+         optional ProcessNameProto name = 1;
+         optional ProcessStateProto state = 2;
+         optional int32 exit_value = 3;
+     }
 
-    struct timeval delay;
-    delay.tv_sec = 1;
-    delay.tv_usec = 0;
-    opal_evtimer_add(ev, &delay);
+     enum ProcessStateProto {
+         RUNNING = 1;
+         COMPLETED = 2;
+     }
 
-    opal_evtimer_set(ev, heartbeat_with_AM_cb, jdata);
+     message ProcessNameProto {
+         optional int32 jobid = 1;
+         optional int32 vpid = 2;
+     }
+     */
+
+    struct pbc_rmessage* response_msg = orte_hdclient_recv_message("HeartbeatResponseProto");
+    if (!response_msg) {
+        opal_output(0,
+                "%s plm:yarn:heartbeat_with_AM_cb: error happened when recv HeartbeatResponseProto msg from AM",
+                ORTE_NAME_PRINT(ORTE_PROC_MY_NAME));
+        goto cleanup;
+    }
+
+    int n = pbc_rmessage_size(response_msg, "completed_processes");
+    if (n <= 0) {
+        opal_output(0,
+                "%s plm:yarn:heartbeat_with_AM_cb: got n(=%d) <= 0, please check",
+                ORTE_NAME_PRINT(ORTE_PROC_MY_NAME), n);
+        goto cleanup;
+    }
+
+    for (i = 0; i < n; i++) {
+        struct pbc_rmessage* completed_procs_msg = pbc_rmessage_message(response_msg, "completed_processes", i);
+        if (!completed_procs_msg) {
+            opal_output(0,
+                    "%s plm:yarn:heartbeat_with_AM_cb: error when parse returned completed_procs_msg from AM",
+                    ORTE_NAME_PRINT(ORTE_PROC_MY_NAME));
+            goto cleanup;
+        }
+
+        struct pbc_rmessage* proc_name_msg = pbc_rmessage_message(completed_procs_msg, "name", 0);
+        if (!proc_name_msg) {
+            opal_output(0,
+                    "%s plm:yarn:heartbeat_with_AM_cb: error when parse proc_name_msg",
+                    ORTE_NAME_PRINT(ORTE_PROC_MY_NAME));
+            goto cleanup;
+        }
+
+        uint32_t local_jobid = pbc_rmessage_integer(proc_name_msg, "jobid", 0, NULL);
+        uint32_t vpid = pbc_rmessage_integer(proc_name_msg, "vpid", 0, NULL);
+
+        uint32_t exit_value = pbc_rmessage_integer(completed_procs_msg, "exit_value", 0, NULL);
+        ORTE_UPDATE_EXIT_STATUS(exit_value);
+
+        /* next, we will modify proc's state */
+        orte_job_t* tmp_jdata = (orte_job_t*) opal_pointer_array_get_item(orte_job_data, local_jobid);
+        orte_proc_t* proc = (orte_proc_t*) opal_pointer_array_get_item(tmp_jdata->procs, vpid);
+
+        /* if this process is already terminated, just skip over */
+        if (proc->state >= ORTE_PROC_STATE_TERMINATED) {
+            continue;
+        }
+
+        if (exit_value == -1000 || exit_value == -100 || exit_value == -101) {
+            proc->state = ORTE_PROC_STATE_FAILED_TO_START;
+        } else {
+            /* here, means currently the proc's state < ORTE_PROC_STATE_TERMINATED,
+             * however, from AM, we got the proc's container is terminated,
+             * to solve this dilemma , we set a timer event to confirm this proc's state,
+             */
+            opal_event_t *ev = NULL;
+            ev = (opal_event_t*) malloc(sizeof(opal_event_t));
+
+            struct timeval delay;
+            delay.tv_sec = 15;
+            delay.tv_usec = 0;
+            opal_evtimer_add(ev, &delay);
+            opal_evtimer_set(ev, process_state_monitor_cb, proc);
+        }
+
+        if (tmp_jdata->jobid == jdata->jobid) {
+            num_completed_jdata_procs++;
+        }
+    }
+
+cleanup:
+    pbc_wmessage_delete(request_msg);
+    pbc_rmessage_delete(response_msg);
+
+    if (num_completed_jdata_procs == jdata->num_procs) {
+        /*
+         * all procs are completed, send finish request to AM,
+         * modify job state to ORTE_JOB_STATE_TERMINATED
+         */
+        finish_app_master();
+        jdata->state = ORTE_JOB_STATE_TERMINATED;
+        return;
+    } else {
+        /* next heartbeat */
+        opal_event_t *ev = NULL;
+        ev = (opal_event_t*) malloc(sizeof(opal_event_t));
+
+        struct timeval delay;
+        delay.tv_sec = 1;
+        delay.tv_usec = 0;
+        opal_evtimer_add(ev, &delay);
+
+        opal_evtimer_set(ev, heartbeat_with_AM_cb, jdata);
+    }
+}
+
+static void process_state_monitor_cb(int fd, short args, void *cbdata)
+{
+    orte_proc_t *proc = (orte_proc_t*)cbdata;
+    if(proc->state >= ORTE_PROC_STATE_TERMINATED)
+        return;
+    else {
+        proc->state = ORTE_PROC_STATE_ABORTED;  //
+    }
+}
+
+static void finish_app_master()
+{
+    int rc;
+    orte_proc_t *proc;
+    orte_job_t *jdata;
+    int i;
+    uint32_t j;
+    bool proc_failed = false;
+    bool job_failed = false;
+
+    bool success_flag = false;
+    char *diag_msg = "";
+
+    if (appmaster_finished) {
+        return;
+    }
+
+    for (i = 0; i < orte_job_data->size; i++) {
+        jdata = opal_pointer_array_get_item(orte_job_data, i);
+        if (!jdata) {
+            continue;
+        }
+        if (jdata->state > ORTE_JOB_STATE_TERMINATED) {
+            job_failed = true;
+            break;
+        }
+        /* check proc state in this job */
+        for (j = 0; j < jdata->num_procs; j++) {
+            proc = opal_pointer_array_get_item(jdata->procs, j);
+            if (!proc) {
+                continue;
+            }
+            if (proc->state > ORTE_PROC_STATE_TERMINATED) {
+                proc_failed = true;
+                break;
+            }
+        }
+        if (proc_failed) {
+            break;
+        }
+    }
+
+    if (job_failed || proc_failed) {
+        success_flag = false;
+    } else {
+        success_flag = true;
+    }
+
+    /* 1. create launch message */
+    /*
+    message FinishRequestProto {
+        optional bool succeed = 1;
+        optional string diagnostics = 2;
+    }
+    */
+    struct pbc_wmessage* request_msg = pbc_wmessage_new(orte_hdclient_pb_env, "FinishRequestProto");
+
+    if (!request_msg) {
+        opal_output(0, "%s plm:yarn:finish_app_master: failed to create request_msg",
+                ORTE_NAME_PRINT(ORTE_PROC_MY_NAME));
+        goto cleanup;
+    }
+
+    rc = pbc_wmessage_integer(request_msg, "succeed", success_flag, 0);
+    if (0 != rc) {
+        opal_output(0,
+                "%s plm:yarn:finish_app_master: pack succeed in request_msg failed",
+                ORTE_NAME_PRINT(ORTE_PROC_MY_NAME));
+        goto cleanup;
+    }
+
+    rc = pbc_wmessage_string(request_msg, "diagnostics", diag_msg, strlen(diag_msg));
+    if (0 != rc) {
+        opal_output(0,
+                "%s plm:yarn:finish_app_master: pack diagnostics in request_msg failed",
+                ORTE_NAME_PRINT(ORTE_PROC_MY_NAME));
+        goto cleanup;
+    }
+
+    /* 2. send launch procs request msg */
+    rc = orte_hdclient_send_message_and_delete(request_msg, HAMSTER_MSG_FINISH);
+    if (rc != 0) {
+        opal_output(0,
+                "%s plm:yarn:finish_app_master: error happened when send request_msg to AM",
+                ORTE_NAME_PRINT(ORTE_PROC_MY_NAME));
+        goto cleanup;
+    }
+
+    /* 3. recv response and parse the msg*/
+    /*
+     message FinishResponseProto {
+     }
+     */
+    struct pbc_rmessage* response_msg = orte_hdclient_recv_message("FinishResponseProto");
+    if (!response_msg) {
+        opal_output(0,
+                "%s plm:yarn:finish_app_master: error happened when recv response_msg from AM",
+                ORTE_NAME_PRINT(ORTE_PROC_MY_NAME));
+        goto cleanup;
+    }
+
+    appmaster_finished = true;
+
+cleanup:
+    pbc_wmessage_delete(request_msg);
+    pbc_rmessage_delete(response_msg);
 }
 
 /* When working in this function, ALWAYS jump to "cleanup" if
@@ -600,10 +866,9 @@ launch_apps:
     launching_daemons = false;
     failed_job = active_job;
 
-    /* here, we make a sync between each orted and hnp */
     /* register recv callback for daemons sync request */
     if (ORTE_SUCCESS != (rc = orte_rml.recv_buffer_nb(ORTE_NAME_WILDCARD,
-                    ORTE_RML_TAG_ORTED_CALLBACK, ORTE_RML_PERSISTENT,   // ORTE_RML_TAG_ORTED_CALLBACK
+                    ORTE_RML_TAG_ORTED_CALLBACK, ORTE_RML_PERSISTENT,
                     yarn_hnp_sync_recv, jdata))) {
         ORTE_ERROR_LOG(rc);
         goto cleanup;
@@ -692,8 +957,6 @@ static void yarn_hnp_sync_recv(int status, orte_process_name_t* sender,
 }
 
 
-
-
 static int plm_yarn_actual_launch_procs(orte_job_t* jdata)
 {
     int rc;
@@ -703,8 +966,8 @@ static int plm_yarn_actual_launch_procs(orte_job_t* jdata)
 
     char **argv;
     char **env;
-    bool success = false;
     bool error_flag = false;
+    int num_launched_procs = 0;
 
     OPAL_OUTPUT_VERBOSE((5, orte_plm_base_framework.framework_output,
                     "%s plm:yarn:launch_apps for job %s",
@@ -752,7 +1015,6 @@ static int plm_yarn_actual_launch_procs(orte_job_t* jdata)
                     "%s plm:yarn:plm_yarn_actual_launch_procs: setup_proc_env_and_argv failed.",
                     ORTE_NAME_PRINT(ORTE_PROC_MY_NAME));
             ORTE_ERROR_LOG(rc);
-            jdata->state = ORTE_JOB_NEVER_LAUNCHED;
             error_flag = true;
             goto cleanup;
         }
@@ -832,6 +1094,9 @@ cleanup:
             opal_argv_free(env);
         }
         if (error_flag) {
+            pbc_wmessage_delete(request_msg);
+            finish_app_master();
+            ORTE_UPDATE_EXIT_STATUS(ORTE_ERROR_DEFAULT_EXIT_CODE);
             return ORTE_ERROR;
         }
     }
@@ -866,7 +1131,7 @@ cleanup:
         opal_output(0,
                 "%s plm:yarn:plm_yarn_actual_launch_procs: error happened when recv launch response msg from AM",
                 ORTE_NAME_PRINT(ORTE_PROC_MY_NAME));
-        return ORTE_ERROR;
+        goto launch_procs_failed;
     }
 
     int n = pbc_rmessage_size(response_msg, "results");
@@ -874,7 +1139,7 @@ cleanup:
         opal_output(0,
                 "%s plm:yarn:plm_yarn_actual_launch_procs: got n(=%d) <= 0, please check",
                 ORTE_NAME_PRINT(ORTE_PROC_MY_NAME), n);
-        return ORTE_ERROR;
+        goto launch_procs_failed;
     }
 
     for (i = 0; i < n; i++) {
@@ -883,7 +1148,7 @@ cleanup:
             opal_output(0,
                     "%s plm:yarn:plm_yarn_actual_launch_procs: error when parse returned launch results from AM",
                     ORTE_NAME_PRINT(ORTE_PROC_MY_NAME));
-            return ORTE_ERROR;
+            goto launch_procs_failed;
         }
 
         struct pbc_rmessage* proc_name_msg = pbc_rmessage_message(results_msg, "name", 0); //?
@@ -891,32 +1156,45 @@ cleanup:
             opal_output(0,
                     "%s plm:yarn:plm_yarn_actual_launch_procs: error when parse returned proc_name_msg from AM",
                     ORTE_NAME_PRINT(ORTE_PROC_MY_NAME));
-            return ORTE_ERROR;
+            goto launch_procs_failed;
         }
 
         orte_jobid_t jobid = pbc_rmessage_integer(proc_name_msg, "jobid", 0, NULL);
         orte_vpid_t vpid = pbc_rmessage_integer(proc_name_msg, "vpid", 0, NULL);
 
-        success = pbc_rmessage_integer(results_msg, "success", 0, NULL);
-        if (!success) {
-            jdata->state = ORTE_JOB_STATE_FAILED_TO_START;
+        bool success = pbc_rmessage_integer(results_msg, "success", 0, NULL);
+
+        orte_proc_t* proc = (orte_proc_t*) opal_pointer_array_get_item(jdata->procs, vpid);
+        if (success) {
+            proc->state = ORTE_PROC_STATE_RUNNING;
+            num_launched_procs++;
+        } else {
             opal_output(0,
-                    "%s plm:yarn:launch_daemons: launch deamon proc failed when jobid = %u, vpid = %u",
+                    "%s plm:yarn:plm_yarn_actual_launch_procs: launch procs failed when jobid = %u, vpid = %u",
                     ORTE_NAME_PRINT(ORTE_PROC_MY_NAME), jobid, vpid);
-            pbc_rmessage_delete(response_msg);
-            return ORTE_ERROR;
+            proc->state = ORTE_PROC_STATE_FAILED_TO_START;
+            jdata->state = ORTE_JOB_STATE_FAILED_TO_START;
+            goto launch_procs_failed;
         }
     }
 
-    /* 4. delete response_msg */
-    jdata->state = ORTE_JOB_STATE_RUNNING;
-
-    OPAL_OUTPUT_VERBOSE((5, orte_ras_base_framework.framework_output,
-                        "%s plm:yarn:plm_yarn_actual_launch_procs: launch procs successfully via AM",
+    /* 4. if all jdata procs are launched successfully, then modify the job's state */
+    if (num_launched_procs == jdata->num_procs) {
+        jdata->state = ORTE_JOB_STATE_RUNNING;
+        OPAL_OUTPUT_VERBOSE((5, orte_ras_base_framework.framework_output,
+                        "%s plm:yarn:plm_yarn_actual_launch_procs: launch jdata procs successfully with AM",
                         ORTE_NAME_PRINT(ORTE_PROC_MY_NAME)));
-
+    }
+    pbc_wmessage_delete(request_msg);
     pbc_rmessage_delete(response_msg);
     return ORTE_SUCCESS;
+
+launch_procs_failed:
+    pbc_wmessage_delete(request_msg);
+    pbc_rmessage_delete(response_msg);
+    finish_app_master();
+    ORTE_UPDATE_EXIT_STATUS(ORTE_ERROR_DEFAULT_EXIT_CODE);
+    return ORTE_ERROR;
 }
 
 /*
