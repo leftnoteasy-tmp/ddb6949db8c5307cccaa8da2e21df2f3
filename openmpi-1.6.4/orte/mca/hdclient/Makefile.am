@@ -22,7 +22,7 @@ noinst_LTLIBRARIES = libmca_hdclient.la
 libmca_hdclient_la_SOURCES =
 
 # pkgdata setup
-dist_pkgdata_DATA =
+dist_pkgdata_DATA = hamster_protos.pb
 
 # local files
 headers = hdclient.h
