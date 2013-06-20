@@ -93,8 +93,8 @@ static int plm_yarn_open(void)
 static int orte_plm_yarn_component_query(mca_base_module_t **module, int *priority)
 {
     *priority = 0;
-
-    OPAL_OUTPUT_VERBOSE((1, orte_plm_base_framework.framework_output,
+                            
+    OPAL_OUTPUT_VERBOSE((1, orte_plm_globals.output,
                          "%s plm:yarn: available for selection",
                          ORTE_NAME_PRINT(ORTE_PROC_MY_NAME)));
 

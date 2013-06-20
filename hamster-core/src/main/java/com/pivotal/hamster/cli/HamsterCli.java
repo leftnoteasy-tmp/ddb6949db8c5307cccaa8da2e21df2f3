@@ -72,8 +72,10 @@ public class HamsterCli {
   ClientRMProtocol client;
   RecordFactory recordFactory;
   HamsterParamBuilder paramBuilder;
-  boolean preInstallBinary;
-  String hamsterHome;
+  
+  // home/is-preinstall of ompi
+  boolean preInstallOmpiBinary;
+  String ompiHome;
 
   public HamsterCli() {
     this.conf = new YarnConfiguration();
@@ -108,7 +110,7 @@ public class HamsterCli {
     paramBuilder.parse(args);
     
     // do set hamster home, etc.
-    checkAndSetHamsterHome();
+    checkAndSetOmpiHome();
   }
 
   void getNewApplication() throws IOException, YarnRemoteException {
@@ -249,15 +251,20 @@ public class HamsterCli {
   }
   
   // check and upload if user not specified pre-install hamster package
-  void processHamsterBinaryPackage(Map<String, LocalResource> localResources, FileSystem fs, Path publicUploadPath) throws IOException {
+  void processOmpiBinaryPackage(Map<String, LocalResource> localResources, FileSystem fs, Path publicUploadPath) throws IOException {
     // user specified binary is pre installed, we don't need do anything
-    if (preInstallBinary) {
+    if (preInstallOmpiBinary) {
       return;
     }
-    
+    processPublicTarball(localResources, fs, publicUploadPath,
+        conf.get(HamsterConfig.OMPI_LOCAL_TARBALL_PATH_KEY),
+        HamsterConfig.DEFAULT_OMPI_INSTALL_DIR);
+  }
+  
+  void processPublicTarball(Map<String, LocalResource> localResources,
+      FileSystem fs, Path publicUploadPath, String localFile, String resourceKey) throws IOException {
     // get tar-ball path and check if it's existed
-    String tarballPath = conf.get(HamsterConfig.HAMSTER_LOCAL_TARBALL_PATH_KEY);
-    File tarballFile = new File(tarballPath);
+    File tarballFile = new File(localFile);
     if (!tarballFile.exists() || !tarballFile.isFile()) {
       LOG.error("user specified hamster binary tar-ball path not exists or not a file, please check:" + tarballFile.getAbsolutePath());
       throw new IOException("user specified hamster binary tar-ball path not exists or not a file, please check:" + tarballFile.getAbsolutePath());
@@ -285,7 +292,7 @@ public class HamsterCli {
     
     // we will upload this to staging area
     if (needUpload) {
-      uploadFileToHDFS(tarballPath, fs, publicUploadPath.toString());
+      uploadFileToHDFS(localFile, fs, publicUploadPath.toString());
     }
     
     // add file info to localResources
@@ -294,7 +301,7 @@ public class HamsterCli {
         LocalResourceType.ARCHIVE, LocalResourceVisibility.PUBLIC);
     
     // put it to local resources
-    localResources.put(HamsterConfig.DEFAULT_HAMSTER_INSTALL_DIR, res);
+    localResources.put(resourceKey, res);
   }
   
   FileSystem getRemoteFileSystem() throws IOException {
@@ -382,7 +389,7 @@ public class HamsterCli {
   	}
   	
   	// check if we need to upload hamster binary package and add it to local resources
-  	processHamsterBinaryPackage(localResources, fs, publicUploadPath);
+  	processOmpiBinaryPackage(localResources, fs, publicUploadPath);
   	
   	// check if we need to upload hamster jar and add it to local resources
   	processHamsterJar(localResources, fs, publicUploadPath);
@@ -449,7 +456,7 @@ public class HamsterCli {
   }
 	
   void setContainerCtxCommand(ContainerLaunchContext ctx) {
-    String command = paramBuilder.getUserCli();
+    String command = paramBuilder.getUserCli(ctx);
     List<String> cmds = new ArrayList<String>();
     
     if (paramBuilder.isVerbose()) {
@@ -485,9 +492,6 @@ public class HamsterCli {
     
     // set app-id to app context
     val.setApplicationId(appId);
-    
-    // set command for container launch context
-    setContainerCtxCommand(ctx);
 
     // set resource spec to container launch context
     setContainerCtxResource(ctx);
@@ -497,6 +501,9 @@ public class HamsterCli {
 
     // set env to ctx
     setContainerCtxEnvs(ctx);
+    
+    // set command for container launch context
+    setContainerCtxCommand(ctx);
     
     // set application name
     val.setApplicationName("hamster");
@@ -538,22 +545,22 @@ public class HamsterCli {
    * @return hamster home in NM (for mpirun and launched processes)
    * @throws IOException 
    */
-  void checkAndSetHamsterHome() throws IOException {
-    preInstallBinary = conf.getBoolean(HamsterConfig.HAMSTER_PREINSTALL_PROPERTY_KEY, false);
-    if (preInstallBinary) {
+  void checkAndSetOmpiHome() throws IOException {
+    preInstallOmpiBinary = conf.getBoolean(HamsterConfig.OMPI_PREINSTALL_PROPERTY_KEY, false);
+    if (preInstallOmpiBinary) {
       // when user specified pre install
-      hamsterHome = conf.get(HamsterConfig.HAMSTER_HOME_PROPERTY_KEY);
-      if (null == hamsterHome) {
+      ompiHome = conf.get(HamsterConfig.OMPI_HOME_PROPERTY_KEY);
+      if (null == ompiHome) {
         LOG.error("user specified hamster is pre-installed in NM, but not set hamster home");
         throw new IOException("user specified hamster is pre-installed in NM, but not set hamster home");
       }
     } else {
-      String tarballPath = conf.get(HamsterConfig.HAMSTER_LOCAL_TARBALL_PATH_KEY);
+      String tarballPath = conf.get(HamsterConfig.OMPI_LOCAL_TARBALL_PATH_KEY);
       if (null == tarballPath) {
         LOG.error("user specified hamster is not preInstalled, but not specify local tarball path");
         throw new IOException("user specified hamster is not preInstalled, but not specify local tarball path");
       }
-      hamsterHome = HamsterConfig.DEFAULT_HAMSTER_INSTALL_DIR;
+      ompiHome = HamsterConfig.DEFAULT_OMPI_INSTALL_DIR;
     }
   }
   
@@ -569,33 +576,10 @@ public class HamsterCli {
         String.valueOf(appId.getClusterTimestamp()));
    
     // put hamster home
-    if (hamsterHome != null) {
-      envs.put(HamsterConfig.HAMSTER_HOME_ENV_KEY, hamsterHome);
+    if (ompiHome != null) {
+      envs.put(HamsterConfig.HAMSTER_HOME_ENV_KEY, ompiHome);
     }
-    
-    // yarn-version
-    String yarnVersion = conf.get(HamsterConfig.HAMSTER_YARN_VERSION_PROPERTY_KEY);
-    if ((yarnVersion == null) || (yarnVersion.length() == 0)) {
-      LOG.error("MUST specifiy YARN version, valid values are:" + Arrays.toString(HamsterConfig.SUPPORTED_YARN_VERSION));
-      throw new IOException("MUST specifiy YARN version, valid values are:" + Arrays.toString(HamsterConfig.SUPPORTED_YARN_VERSION));
-    }
-    // check if valid
-    boolean yarnVersionValid = false;
-    for (String v : HamsterConfig.SUPPORTED_YARN_VERSION) {
-      if (StringUtils.equals(v, yarnVersion)) {
-        yarnVersionValid = true;
-        break;
-      }
-    }
-    if (!yarnVersionValid) {
-      LOG.error("not valid YARN version specified, valid values are:" + Arrays.toString(HamsterConfig.SUPPORTED_YARN_VERSION));
-      throw new IOException("not valid YARN version specified, valid values are:" + Arrays.toString(HamsterConfig.SUPPORTED_YARN_VERSION));
-    }
-    envs.put(HamsterConfig.YARN_VERSION_ENV_KEY, yarnVersion);
-    
-    String pbDir = hamsterHome + "/etc/protos/" + yarnVersion;
-    envs.put(HamsterConfig.PB_DIR_ENV_KEY, pbDir);
-    
+        
     // rm host
     String rmSchedulerAddr = conf.get(
         YarnConfiguration.RM_SCHEDULER_ADDRESS, 
@@ -614,10 +598,10 @@ public class HamsterCli {
     setHamsterDebugEnvs(envs);
 
     // set $PATH, $LD_LIBRARY_PATH, etc.
-    pathEnvar = HamsterUtils.appendEnv(pathEnvar, hamsterHome + "/bin");
+    pathEnvar = HamsterUtils.appendEnv(pathEnvar, ompiHome + "/bin");
     pathEnvar = HamsterUtils.appendEnv(pathEnvar, "./");
-    ldlibEnvar = HamsterUtils.appendEnv(ldlibEnvar, hamsterHome + "/lib");
-    ldlibEnvar = HamsterUtils.appendEnv(ldlibEnvar, hamsterHome
+    ldlibEnvar = HamsterUtils.appendEnv(ldlibEnvar, ompiHome + "/lib");
+    ldlibEnvar = HamsterUtils.appendEnv(ldlibEnvar, ompiHome
         + "/lib/openmpi");
     ldlibEnvar = HamsterUtils.appendEnv(ldlibEnvar, "./");
     dyldlibEnvar = new String(ldlibEnvar); // dyldlibEnvar should be a copied
@@ -650,9 +634,29 @@ public class HamsterCli {
       }
     }
     
+    String mem = paramBuilder.getHamsterMemory();
+    if (mem != null && !mem.isEmpty()) {
+      envs.put("HAMSTER_MEM", mem);
+    }
+    
+    String cpu = paramBuilder.getHamsterCPU();
+    if (cpu != null && !cpu.isEmpty()) {
+      envs.put("HAMSTER_CPU", cpu);
+    }
+    
+    // set pb file env 
+    envs.put(HamsterConfig.YARN_PB_FILE_ENV_KEY, ompiHome + "/etc/protos/hamster_protos.pb");
+    
+    // add yarn, hdfs, and related jars to $CLASSPATH
+    addClasspathToEnv(envs);
+    
     // process folder for pid
     String pidRoot = conf.get(HamsterConfig.DEFAULT_PID_ROOT_DIR, HamsterConfig.DEFAULT_PID_ROOT_DIR);
     envs.put("HAMSTER_PID_ROOT", pidRoot);
+    
+    if (paramBuilder.isVerbose()) {
+      envs.put("HAMSTER_VERBOSE", "yes");
+    }
     
     if (paramBuilder.isVerbose()) {
       // print env out
@@ -662,17 +666,19 @@ public class HamsterCli {
       }
     }
     
-    String mem = paramBuilder.getHamsterMemory();
-    if (mem != null && !mem.isEmpty()) {
-    	envs.put("HAMSTER_MEM", mem);
-    }
-    
-    String cpu = paramBuilder.getHamsterCPU();
-    if (cpu != null && !cpu.isEmpty()) {
-    	envs.put("HAMSTER_CPU", cpu);
-    }
-    
     ctx.setEnvironment(envs);
+  }
+  
+  void addClasspathToEnv(Map<String, String> envs) {
+    String classpath = envs.get("CLASSPATH");
+    if (classpath == null || classpath.isEmpty()) {
+      classpath = "./*";
+    }
+    for (String cp : YarnConfiguration.DEFAULT_YARN_APPLICATION_CLASSPATH) {
+      classpath = classpath + ":" + cp;
+    }
+    classpath = classpath + ":hamster-core.jar";
+    envs.put("CLASSPATH", classpath);
   }
   
   FinalApplicationStatus waitForApplicationTerminated() throws IOException, InterruptedException {

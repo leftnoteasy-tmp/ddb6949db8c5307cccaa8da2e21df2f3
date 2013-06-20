@@ -35,6 +35,7 @@ import org.apache.hadoop.yarn.api.records.ApplicationId;
 import org.apache.hadoop.yarn.api.records.ApplicationSubmissionContext;
 import org.apache.hadoop.yarn.api.records.Container;
 import org.apache.hadoop.yarn.api.records.ContainerId;
+import org.apache.hadoop.yarn.api.records.ContainerStatus;
 import org.apache.hadoop.yarn.api.records.FinalApplicationStatus;
 import org.apache.hadoop.yarn.api.records.Resource;
 import org.apache.hadoop.yarn.api.records.ResourceRequest;
@@ -47,6 +48,7 @@ import org.apache.hadoop.yarn.ipc.YarnRPC;
 import org.apache.hadoop.yarn.util.RackResolver;
 
 import com.pivotal.hamster.appmaster.event.HamsterFailureEvent;
+import com.pivotal.hamster.appmaster.utils.HadoopRpcUtils;
 import com.pivotal.hamster.appmaster.utils.HamsterAppMasterUtils;
 import com.pivotal.hamster.common.CompletedContainer;
 import com.pivotal.hamster.common.HamsterConfig;
@@ -77,7 +79,7 @@ public class YarnContainerAllocator extends ContainerAllocator {
   AtomicBoolean allocateFinished;
   Dispatcher dispatcher;
   Resource resource;
-  YarnRPC rpc;
+  Configuration conf;
   
   // allocate can either be used by "allocate resource" or "get completed container"
   // we will not make them used at the same time
@@ -124,7 +126,7 @@ public class YarnContainerAllocator extends ContainerAllocator {
   @Override
   public void init(Configuration conf) {
     super.init(conf);
-
+    this.conf = conf;
     scheduler = createSchedulerProxy();
     setApplicationAttemptId();
     releaseContainerQueue = new ConcurrentLinkedQueue<ContainerId>();
@@ -157,7 +159,7 @@ public class YarnContainerAllocator extends ContainerAllocator {
     startCompletedContainerQueryThread();
     
     super.start();
-    
+
     LOG.info("start succeed");
   }
   
@@ -190,6 +192,7 @@ public class YarnContainerAllocator extends ContainerAllocator {
   }
   
   void setApplicationAttemptId() throws HamsterException {
+    YarnRPC rpc = HadoopRpcUtils.getYarnRPC(conf);
     applicationAttemptId = HamsterAppMasterUtils.getAppAttemptIdFromEnv();
     if (null == applicationAttemptId) {
       try {
@@ -197,11 +200,11 @@ public class YarnContainerAllocator extends ContainerAllocator {
         // with
         // UnManaged set, this will be very helpful when we debug
         LOG.info("seems we're in debug mode, no hamster-cli involved");
-        InetSocketAddress rmAddress = NetUtils.createSocketAddr(getConfig()
+        InetSocketAddress rmAddress = NetUtils.createSocketAddr(conf
             .get(YarnConfiguration.RM_ADDRESS,
                 YarnConfiguration.DEFAULT_RM_ADDRESS));
         ClientRMProtocol yarnClient = (ClientRMProtocol) (rpc.getProxy(
-            ClientRMProtocol.class, rmAddress, getConfig()));
+            ClientRMProtocol.class, rmAddress, conf));
 
         // create get new application
         GetNewApplicationRequest newRequest = recordFactory
@@ -284,6 +287,13 @@ public class YarnContainerAllocator extends ContainerAllocator {
           }
         }
       }
+
+      List<ContainerStatus> completedContainers = response.getAMResponse()
+          .getCompletedContainersStatuses();
+      for (ContainerStatus status : completedContainers) {
+        completedContainerQueue.offer(new CompletedContainer(status
+            .getContainerId().getId(), status.getExitStatus()));
+      }
       
       return response;
     }
@@ -320,8 +330,7 @@ public class YarnContainerAllocator extends ContainerAllocator {
   }
 
   AMRMProtocol createSchedulerProxy() {
-    final Configuration conf = getConfig();
-    rpc = YarnRPC.create(conf);
+    final YarnRPC rpc = HadoopRpcUtils.getYarnRPC(conf);
     final InetSocketAddress serviceAddr = conf.getSocketAddr(
         YarnConfiguration.RM_SCHEDULER_ADDRESS,
         YarnConfiguration.DEFAULT_RM_SCHEDULER_ADDRESS,

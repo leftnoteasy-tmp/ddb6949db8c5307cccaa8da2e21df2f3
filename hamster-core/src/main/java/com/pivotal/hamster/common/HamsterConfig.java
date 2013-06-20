@@ -1,7 +1,7 @@
 package com.pivotal.hamster.common;
 
 public interface HamsterConfig {
-  public final String HAMSTER_HOME_ENV_KEY = "HAMSTER_HOME";
+  public final String HAMSTER_HOME_ENV_KEY = "HAMSTER_CORE_HOME";
   public final String APP_ID_ENV_KEY = "APP_ID_ENV";
   public final String CLUSTER_TIMESTAMP_ENV_KEY = "CLUSTER_TIMESTAMP_ENV";
   public final String TALKBACK_HOST = "TALKBACK_HOST";
@@ -24,35 +24,33 @@ public interface HamsterConfig {
   
   /* Hamster Properties */
   /* Home of hamster */
-  public final String HAMSTER_HOME_PROPERTY_KEY = "com.greenplum.hamster.home";
-  public final String HAMSTER_LOCAL_TARBALL_PATH_KEY = "com.greenplum.hamster.tarball.path";
+  public final String OMPI_HOME_PROPERTY_KEY = "com.greenplum.ompi.home";
+  public final String OMPI_LOCAL_TARBALL_PATH_KEY = "com.greenplum.ompi.tarball.path";
   
   /* Do we pre-installed hamster in nodes in YARN cluster? 
    * by default, we will consider all nodes have hamster installed in hamster.home
    */
-  public final String HAMSTER_PREINSTALL_PROPERTY_KEY = "com.greenplum.hamster.preinstall"; 
-  public final boolean HASMTER_PREINSTALL_DEFAULT_VALUE = false;
-  
-  public final String HAMSTER_YARN_VERSION_PROPERTY_KEY = "com.greenplum.hamster.yarn.version";
-  
-  public final String DEFAULT_YARN_VERSION = "2.0.3-alpha";
+  public final String OMPI_PREINSTALL_PROPERTY_KEY = "com.greenplum.ompi.preinstall"; 
+  public final boolean OMPI_PREINSTALL_DEFAULT_VALUE = false;
+    
   public final String DEFAULT_LOCALRESOURCE_SERIALIZED_FILENAME = "hamster_localresource_pb";
   public final String HAMSTER_ENABLED_LOGKEYS_KEY = "com.greenplum.hamster.enabled.logkeys";
   
   /**
-   * default un-tar dir in NM for AM & launched processes when user specified not pre-install
+   * default un-tar dir in NM for AM & launched processes when user specified *not* pre-install
    * YARN will un-tar hamster binaries to this directory
    */
-  public final String DEFAULT_HAMSTER_INSTALL_DIR = "ompi-hamster";
+  public final String DEFAULT_OMPI_INSTALL_DIR = "hamster-ompi";
+  public final String DEFAULT_HAMSTER_INSTALL_DIR = "hamster-core";
+  
+  public final String YARN_PB_FILE_ENV_KEY = "YARN_PB_FILE";
   
   /**
    * how many times that user will wait for log aggregation finished (in ms)
    */
   public final String HAMSTER_LOG_AGGREGATION_WAIT_TIME = "com.greenplum.hamster.log.waittime";
   public final int DEFAULT_HAMSTER_LOG_WAIT_TIME = 5000;
-    
-  public final String[] SUPPORTED_YARN_VERSION = new String[] { "2.0.2-alpha", "2.0.3-alpha" };
-  
+      
   public static final String HAMSTER_CONFIG_PREFIX = "com.pivotal.hamster.";
   
   /* hnp expire time */

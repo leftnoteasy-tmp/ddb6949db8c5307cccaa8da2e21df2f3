@@ -40,6 +40,7 @@ import org.apache.hadoop.yarn.proto.YarnProtos.LocalResourceProto;
 import org.apache.hadoop.yarn.security.ContainerTokenIdentifier;
 import org.apache.hadoop.yarn.util.ProtoUtils;
 
+import com.pivotal.hamster.appmaster.utils.HadoopRpcUtils;
 import com.pivotal.hamster.common.HamsterConfig;
 import com.pivotal.hamster.common.HamsterException;
 import com.pivotal.hamster.common.LaunchContext;
@@ -47,13 +48,14 @@ import com.pivotal.hamster.common.LaunchContext;
 public class YarnContainerLauncher extends ContainerLauncher {
   private static final Log LOG = LogFactory.getLog(YarnContainerLauncher.class);
 
-  private YarnRPC rpc;
   AtomicBoolean failed;
   AtomicInteger finishedCount;
   private final RecordFactory recordFactory =
       RecordFactoryProvider.getRecordFactory(null);
   Map<String, LocalResource> localResources;
   Dispatcher dispatcher;
+  Configuration conf;
+  String user;
   
   class YarnContainerLaunchTask implements Callable<Boolean> {
     LaunchContext ctx;
@@ -66,6 +68,8 @@ public class YarnContainerLauncher extends ContainerLauncher {
     public Boolean call() {
       boolean launchFailed = false;
       try {
+        LOG.info("do launch for process:" + ctx.getName().toString());
+
         // create proxy for container manager
         Container container = ctx.getContainer();
         ContainerManager cm = getCMProxy(container.getId(), container
@@ -74,7 +78,11 @@ public class YarnContainerLauncher extends ContainerLauncher {
         
         // create StartContainerRequest
         StartContainerRequest request = createStartContainerRequest(ctx);
+        LOG.info("before send start container request for " + ctx.getName().toString());
         cm.startContainer(request);
+        LOG.info("after send start container request for " + ctx.getName().toString());
+        
+        LOG.info("after do launch for process:" + ctx.getName().toString());
       } catch (Exception e) {
         LOG.error("launch failed", e);
         launchFailed = true;
@@ -102,6 +110,8 @@ public class YarnContainerLauncher extends ContainerLauncher {
       cmd.add(ctx.getArgs());
       launchCtx.setCommands(cmd);
       
+      launchCtx.setUser(user);
+      
       // set container-id
       launchCtx.setContainerId(ctx.getContainer().getId());
       
@@ -128,9 +138,10 @@ public class YarnContainerLauncher extends ContainerLauncher {
   @Override
   public void init(Configuration conf) {
     super.init(conf);
-    rpc = YarnRPC.create(conf);
+    this.conf = conf;
     try {
       localResources = loadLocalResources();
+      user = UserGroupInformation.getCurrentUser().getUserName();
     } catch (IOException e) {
       LOG.error("exception when load local resources", e);
       throw new HamsterException(e);
@@ -154,7 +165,8 @@ public class YarnContainerLauncher extends ContainerLauncher {
       return null;
     }
 
-    ExecutorService executor = Executors.newFixedThreadPool(4);
+    //ExecutorService executor = Executors.newFixedThreadPool(1);
+    ExecutorService executor = Executors.newSingleThreadExecutor();
 
     // result
     boolean[] results = new boolean[launchContexts.length];
@@ -162,6 +174,8 @@ public class YarnContainerLauncher extends ContainerLauncher {
     // init failed and finished count
     failed = new AtomicBoolean(false);
     finishedCount = new AtomicInteger(0);
+    
+    LOG.info("before submit launch tasks");
 
     Future<Boolean>[] launchResults = new Future[launchContexts.length];
     for (int i = 0; i < launchContexts.length; i++) {
@@ -175,6 +189,8 @@ public class YarnContainerLauncher extends ContainerLauncher {
       }
       launchResults[i] = executor.submit(new YarnContainerLaunchTask(ctx));
     }
+    
+    LOG.info("after submit launch tasks");
 
     // wait for all tasks finished OR any task failed OR executor terminated
     while (true) {
@@ -268,9 +284,10 @@ public class YarnContainerLauncher extends ContainerLauncher {
   ContainerManager getCMProxy(ContainerId containerID,
       final String containerManagerBindAddr, ContainerToken containerToken)
       throws IOException {
-
+    final YarnRPC rpc = HadoopRpcUtils.getYarnRPC(conf);
     final InetSocketAddress cmAddr = NetUtils
         .createSocketAddr(containerManagerBindAddr);
+
     UserGroupInformation user = UserGroupInformation.getCurrentUser();
 
     if (UserGroupInformation.isSecurityEnabled()) {
@@ -286,7 +303,7 @@ public class YarnContainerLauncher extends ContainerLauncher {
           @Override
           public ContainerManager run() {
             return (ContainerManager) rpc.getProxy(ContainerManager.class,
-                cmAddr, getConfig());
+                cmAddr, conf);
           }
         });
     return proxy;

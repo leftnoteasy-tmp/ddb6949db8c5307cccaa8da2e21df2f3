@@ -4,13 +4,9 @@ import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.util.ShutdownHookManager;
-import org.apache.hadoop.yarn.api.ApplicationConstants;
-import org.apache.hadoop.yarn.api.records.ApplicationAttemptId;
-import org.apache.hadoop.yarn.api.records.ContainerId;
 import org.apache.hadoop.yarn.conf.YarnConfiguration;
 import org.apache.hadoop.yarn.event.AsyncDispatcher;
 import org.apache.hadoop.yarn.service.CompositeService;
-import org.apache.hadoop.yarn.util.ConverterUtils;
 
 import com.pivotal.hamster.appmaster.allocator.ContainerAllocator;
 import com.pivotal.hamster.appmaster.allocator.YarnContainerAllocator;
@@ -24,6 +20,7 @@ import com.pivotal.hamster.appmaster.hnp.HnpLivenessMonitor;
 import com.pivotal.hamster.appmaster.hnp.HnpService;
 import com.pivotal.hamster.appmaster.launcher.ContainerLauncher;
 import com.pivotal.hamster.appmaster.launcher.YarnContainerLauncher;
+import com.pivotal.hamster.appmaster.utils.HadoopRpcUtils;
 
 public class HamsterAppMaster extends CompositeService {
   private static final Log LOG = LogFactory.getLog(HamsterAppMaster.class);

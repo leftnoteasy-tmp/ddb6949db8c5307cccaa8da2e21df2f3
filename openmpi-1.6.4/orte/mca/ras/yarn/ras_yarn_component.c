@@ -87,7 +87,7 @@ static int ras_yarn_close(void)
 
 static int orte_ras_yarn_component_query(mca_base_module_t **module, int *priority)
 {
-    OPAL_OUTPUT_VERBOSE((2, orte_ras_base_framework.framework_output,
+    OPAL_OUTPUT_VERBOSE((2, orte_ras_base.ras_output,
                          "%s ras:yarn: available for selection",
                          ORTE_NAME_PRINT(ORTE_PROC_MY_NAME)));
 

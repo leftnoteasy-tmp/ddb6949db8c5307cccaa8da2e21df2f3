@@ -21,6 +21,8 @@
 struct pbc_env* orte_hdclient_pb_env = NULL;
 int orte_umbilical_socket_id = -1;
 
+static int connect_to_server(int socket_id, const char* host, int port);
+
 static void read_file(const char* filename, struct pbc_slice* slice);
 
 int orte_hdclient_init_pb_env() {
@@ -123,6 +125,14 @@ int orte_hdclient_send_message_and_delete(struct pbc_wmessage* msg, enum_hamster
     pbc_wmessage_integer(send_msg, "msg_type", type, 0);
     pbc_wmessage_buffer(send_msg, &send_slice);
     
+//debug
+printf("size:%d\n", send_slice.len);
+int i;
+for (i = 0; i < send_slice.len; i++) {
+    printf("%d ", ((char*)send_slice.buffer)[i]);
+}
+printf("\n");
+fflush(NULL);
     // pack message and send
     write_endian_swap_int(orte_umbilical_socket_id, send_slice.len);
     rc = write_all(orte_umbilical_socket_id, send_slice.buffer, send_slice.len);
@@ -138,9 +148,53 @@ int orte_hdclient_send_message_and_delete(struct pbc_wmessage* msg, enum_hamster
     return 0;
 }
 
+/* connect_to_server, return 0 if succeed */
+static int connect_to_server(int socket_id, const char* host, int port) {
+    //define socket variables
+    struct sockaddr_in serv_addr;
+    struct hostent *server;
+
+    //init port / socket / server
+    server = gethostbyname(host);
+    if (server == NULL)
+    {
+        opal_output(0, "ERROR, no such host.\n");
+        return -1;
+    }
+    bzero((char *) &serv_addr, sizeof(serv_addr));
+    serv_addr.sin_family = AF_INET;
+    bcopy((char *)server->h_addr,
+          (char *)&serv_addr.sin_addr.s_addr,
+                server->h_length);
+                serv_addr.sin_port = htons(port);
+
+    //connect via socket
+    if (connect(socket_id, &serv_addr, sizeof(serv_addr)) < 0)
+    {
+        opal_output(0, "ERROR connecting.\n");
+        return -1;
+    }
+
+    return 0;
+}
+
 struct pbc_rmessage* orte_hdclient_recv_message(const char* msg_type) {
     int rc;
     struct pbc_slice slice;
+
+    int8_t success;
+    rc = read_all(orte_umbilical_socket_id, &success, 1);
+    if (0 != rc) {
+        opal_output(0, "read success status from socket failed");
+        return -1;
+    }
+    if (success == 2) {
+        opal_output(0, "recved error response from AM");
+        return NULL;
+    } else if (success != 1) {
+        opal_output(0, "recved unknown response from AM");
+        return NULL;
+    }
 
     // read len from socket
     rc = read_all(orte_umbilical_socket_id, &slice.len, sizeof(int));
