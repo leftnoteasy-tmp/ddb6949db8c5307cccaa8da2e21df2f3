@@ -105,8 +105,8 @@ static int plm_yarn_finalize(void);
  */
 
 static int launch_daemons(orte_job_t* jdata);
-static int setup_daemon_proc_env_and_argv(orte_proc_t* proc, char **argv,
-        int *argc, char **env);
+static int setup_daemon_proc_env_and_argv(orte_proc_t* proc, char ***pargv,
+        int *argc, char ***penv);
 
 static void yarn_hnp_sync_recv(int status, orte_process_name_t* sender,
                            opal_buffer_t* buffer, orte_rml_tag_t tag,
@@ -114,7 +114,7 @@ static void yarn_hnp_sync_recv(int status, orte_process_name_t* sender,
 
 static int plm_yarn_actual_launch_procs(orte_job_t* jdata);
 static int setup_proc_env_and_argv(orte_job_t* jdata, orte_app_context_t* app,
-        orte_proc_t* proc, char ***argv, char ***env);
+        orte_proc_t* proc, char ***pargv, char ***penv);
 
 static void heartbeat_with_AM_cb(int fd, short event, void *data);
 static void finish_app_master(bool succeed);
@@ -161,75 +161,75 @@ static int plm_yarn_init(void)
 }
 
 /* setup argv for daemon process */
-static int setup_daemon_proc_env_and_argv(orte_proc_t* proc, char **argv,
-        int *argc, char **env)
+static int setup_daemon_proc_env_and_argv(orte_proc_t* proc, char ***pargv,
+        int *argc, char ***penv)
 {
     orte_job_t* daemons;
     int rc;
     char* param;
-
+     
     /* get daemon job object */
     daemons = orte_get_job_data_object(ORTE_PROC_MY_NAME->jobid);
 
     /* prepend orted to argv */
-    opal_argv_append(argc, &argv, "orted");
+    opal_argv_append(argc, pargv, "orted");
 
     /* ess */
-    opal_argv_append(argc, &argv, "-mca");
-    opal_argv_append(argc, &argv, "ess");
-    opal_argv_append(argc, &argv, "env");
+    opal_argv_append(argc, pargv, "-mca");
+    opal_argv_append(argc, pargv, "ess");
+    opal_argv_append(argc, pargv, "env");
 
     /* jobid */
-    opal_argv_append(argc, &argv, "-mca");
-    opal_argv_append(argc, &argv, "orte_ess_jobid");
+    opal_argv_append(argc, pargv, "-mca");
+    opal_argv_append(argc, pargv, "orte_ess_jobid");
     if (ORTE_SUCCESS != (rc = orte_util_convert_jobid_to_string(&param, ORTE_PROC_MY_NAME->jobid))) {
         ORTE_ERROR_LOG(rc);
         return rc;
     }
-    opal_argv_append(argc, &argv, param);
+    opal_argv_append(argc, pargv, param);
     free(param);
 
     /* vpid */
-    opal_argv_append(argc, &argv, "-mca");
-    opal_argv_append(argc, &argv, "orte_ess_vpid");
+    opal_argv_append(argc, pargv, "-mca");
+    opal_argv_append(argc, pargv, "orte_ess_vpid");
     if (ORTE_SUCCESS != (rc = orte_util_convert_vpid_to_string(&param, proc->name.vpid))) {
         ORTE_ERROR_LOG(rc);
         return rc;
     }
-    opal_argv_append(argc, &argv, param);
+    opal_argv_append(argc, pargv, param);
     free(param);
 
     /* num processes */
-    opal_argv_append(argc, &argv, "-mca");
-    opal_argv_append(argc, &argv, "orte_ess_num_procs");
+    opal_argv_append(argc, pargv, "-mca");
+    opal_argv_append(argc, pargv, "orte_ess_num_procs");
     asprintf(&param, "%lu", daemons->num_procs);
-    opal_argv_append(argc, &argv, param);
+    opal_argv_append(argc, pargv, param);
     free(param);
 
     /* pass the uri of the hnp */
     asprintf(&param, "\\\"%s\\\"", orte_rml.get_contact_info());
-    opal_argv_append(argc, &argv, "--hnp-uri");
-    opal_argv_append(argc, &argv, param);
+    opal_argv_append(argc, pargv, "--hnp-uri");
+    opal_argv_append(argc, pargv, param);
     free(param);
 
     /* oob */
-    opal_argv_append(argc, &argv, "-mca");
-    opal_argv_append(argc, &argv, "oob");
-    opal_argv_append(argc, &argv, "tcp");
+    opal_argv_append(argc, pargv, "-mca");
+    opal_argv_append(argc, pargv, "oob");
+    opal_argv_append(argc, pargv, "tcp");
 
     /* odls */
-    opal_argv_append(argc, &argv, "-mca");
-    opal_argv_append(argc, &argv, "odls");
-    opal_argv_append(argc, &argv, "yarn");
+    opal_argv_append(argc, pargv, "-mca");
+    opal_argv_append(argc, pargv, "odls");
+    opal_argv_append(argc, pargv, "yarn");
 
     /* add stdout, stderr to orted */
-    opal_argv_append_nosize(&argv, "1><LOG_DIR>/stdout");
-    opal_argv_append_nosize(&argv, "2><LOG_DIR>/stderr");
+    opal_argv_append_nosize(pargv, "1><LOG_DIR>/stdout");
+    opal_argv_append_nosize(pargv, "2><LOG_DIR>/stderr");
 
     /* print launch commandline and env when this env is specified */
     if (getenv("HAMSTER_VERBOSE")) {
-        char* join_argv = opal_argv_join(argv, ' ');
-        char* join_env = opal_argv_join(env, ' ');
+        char* join_argv = opal_argv_join(*pargv, ' ');
+        char* join_env = opal_argv_join(*penv, ' ');
         OPAL_OUTPUT_VERBOSE((5, orte_plm_globals.output, "%s plm:yarn launch_daemon argv=%s",
             ORTE_NAME_PRINT(ORTE_PROC_MY_NAME), join_argv));
         OPAL_OUTPUT_VERBOSE((5, orte_plm_globals.output, "%s plm:yarn launch_daemon env=%s",
@@ -295,7 +295,7 @@ static int launch_daemons(orte_job_t* jdata)
             ORTE_ERROR_LOG(ORTE_ERROR_DEFAULT_EXIT_CODE);
         }
 
-        if (0 != setup_daemon_proc_env_and_argv(proc, argv, &argc, env)) {
+        if (0 != setup_daemon_proc_env_and_argv(proc, &argv, &argc, &env)) {
             opal_output(0,
                     "%s plm:yarn:launch_daemons: failed to setup env/argv of daemon proc[%d]",
                     ORTE_NAME_PRINT(ORTE_PROC_MY_NAME), i);
@@ -1239,7 +1239,6 @@ static int setup_proc_env_and_argv(orte_job_t* jdata, orte_app_context_t* app,
             ORTE_NAME_PRINT(ORTE_PROC_MY_NAME));
         return ORTE_ERROR;
     }
-
     *pargv = opal_argv_copy(app->argv);
 
     if (ORTE_SUCCESS != orte_util_convert_jobid_to_string(&job_id_str, jdata->jobid)) {
@@ -1387,7 +1386,7 @@ static int plm_yarn_terminate_orteds(void)
     int rc;
     orte_job_t *jdata;
 
-    finish_app_master(false);
+    finish_app_master(0 == orte_exit_status);
 
     /* tell them to die without sending a reply - we will rely on the
      * waitpid to tell us when they have exited!

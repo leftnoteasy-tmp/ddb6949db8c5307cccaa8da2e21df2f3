@@ -60,15 +60,7 @@ public class DefaultHnpService extends HnpService {
   HnpLivenessMonitor mon;
   Map<String, List<HamsterContainer>> allocateResult;
   Map<Integer, ProcessName> containerIdToName;
-  HnpState state = HnpState.Init;
   Dispatcher dispatcher;
-  
-  enum HnpState {
-    Init,
-    Registered,
-    Allocated,
-    Finished
-  }
   
   public DefaultHnpService(Dispatcher dispatcher,
       ContainerAllocator containerAllocator, 

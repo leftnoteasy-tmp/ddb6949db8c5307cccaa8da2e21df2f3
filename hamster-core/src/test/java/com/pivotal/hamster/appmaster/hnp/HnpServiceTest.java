@@ -21,7 +21,7 @@ import com.pivotal.hamster.appmaster.allocator.ContainerAllocator;
 import com.pivotal.hamster.appmaster.allocator.MockContainerAllocator;
 import com.pivotal.hamster.appmaster.common.MockContainer;
 import com.pivotal.hamster.appmaster.event.HamsterEventType;
-import com.pivotal.hamster.appmaster.hnp.DefaultHnpService.HnpState;
+import com.pivotal.hamster.appmaster.hnp.HnpService.HnpState;
 import com.pivotal.hamster.appmaster.launcher.ContainerLauncher;
 import com.pivotal.hamster.appmaster.launcher.MockContainerLauncher;
 import com.pivotal.hamster.appmaster.ut.MockDispatcher;
