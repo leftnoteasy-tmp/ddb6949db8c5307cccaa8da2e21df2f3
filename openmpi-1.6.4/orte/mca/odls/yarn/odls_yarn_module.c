@@ -127,7 +127,7 @@ static void monitor_local_launch(int fd, short event, void* cbdata);
 
 static void handle_proc_exit(orte_odls_child_t* child, int32_t status);
 
-static void check_proc_complete(orte_odls_child_t *child);
+static void orte_base_check_proc_complete(orte_odls_child_t *child);
 
 static orte_vpid_t get_vpid_from_err_file(const char* filename);
 
@@ -252,6 +252,12 @@ static void monitor_local_launch(int fd, short event, void* cbdata) {
     int total_local_children_num = opal_list_get_size(&orte_local_children);
     struct dirent *ent;
 
+    OPAL_OUTPUT_VERBOSE((5, orte_odls_globals.output,
+                 "%s odls:yarn: enter monitor_local_launch, we need [%d] local children, now we have [%d] launched",
+                 ORTE_NAME_PRINT(ORTE_PROC_MY_NAME),
+                 total_local_children_num,
+                 mon->detected_proc_num));
+
     // do monitoring logic
     // get processes pid path
     char* pid_root = getenv("HAMSTER_PID_ROOT");
@@ -286,6 +292,8 @@ static void monitor_local_launch(int fd, short event, void* cbdata) {
                     }
                     if (child->state < ORTE_PROC_STATE_UNTERMINATED) {
                         child->alive = false;
+opal_output(0, "!!!! failed to start");
+ORTE_ERROR_LOG(ORTE_ERR_NOT_FOUND);
                         child->state = ORTE_PROC_STATE_FAILED_TO_START;
                         mon->detected_proc_num++;
                         new_detected_proc++;
@@ -320,7 +328,7 @@ static void monitor_local_launch(int fd, short event, void* cbdata) {
     if (new_detected_proc > 0) {
         OPAL_OUTPUT_VERBOSE((5, orte_odls_globals.output,
                      "%s odls:yarn we have [%d] local_children, now [%d] are detected",
-                     ORTE_NAME_PRINT(ORTE_PROC_MY_NAME), total_local_children_num, detected_proc_num));
+                     ORTE_NAME_PRINT(ORTE_PROC_MY_NAME), total_local_children_num, mon->detected_proc_num));
     }
 
     mon->total_wait_time += WAIT_TIME_MICRO_SEC;
@@ -354,6 +362,8 @@ MOVEON:
             item = opal_list_get_next(item)) {
             child = (orte_odls_child_t*)item;
             if (child->state < ORTE_PROC_STATE_LAUNCHED) {
+opal_output(0, "!!!! failed to start");
+ORTE_ERROR_LOG(ORTE_ERR_NOT_FOUND);
                 child->state = ORTE_PROC_STATE_FAILED_TO_START;
             }
         }
@@ -613,6 +623,11 @@ static void handle_proc_exit(orte_odls_child_t* child, int32_t status) {
     opal_list_item_t *item;
     orte_odls_child_t* chd;
 
+    OPAL_OUTPUT_VERBOSE((5, orte_odls_globals.output,
+                     "%s odls:waitpid_fired noticed child %s with exit status %d",
+                     ORTE_NAME_PRINT(ORTE_PROC_MY_NAME),
+                     ORTE_NAME_PRINT(child->name), status));
+
     /* if the child was previously flagged as dead, then just
      * ensure that its exit state gets reported to avoid hanging
      */
@@ -719,9 +734,10 @@ static void handle_proc_exit(orte_odls_child_t* child, int32_t status) {
 MOVEON:
     /* indicate the waitpid fired */
     child->waitpid_recvd = true;
-    
+    child->iof_complete = true;
+
     /* check for everything complete */
-    check_proc_complete(child);
+    orte_base_check_proc_complete(child);
 }
 
 /* this is copied from odls_base_default_fns.c, because we cannot access it */
@@ -746,11 +762,10 @@ static bool any_live_children(orte_jobid_t job)
     
     /* if we get here, then nobody is left alive from that job */
     return false;
-
 }
 
 /* this is copied from odls_base_default_fns.c, because we cannot access it */
-static void check_proc_complete(orte_odls_child_t *child)
+static void orte_base_check_proc_complete(orte_odls_child_t *child)
 {
     int rc;
     opal_buffer_t alert;
@@ -964,6 +979,7 @@ static int orte_odls_yarn_launch_local_procs(opal_buffer_t *data)
          item = opal_list_get_next(item)) {
         child = (orte_odls_child_t*)item;
         child->alive = true;
+        child->state = ORTE_PROC_STATE_INIT;
     }
 
     /* register a callback for hnp sync response */
