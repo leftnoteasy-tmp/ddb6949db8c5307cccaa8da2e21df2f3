@@ -13,6 +13,7 @@ import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.yarn.event.Dispatcher;
 
 import com.pivotal.hamster.appmaster.event.HamsterFailureEvent;
+import com.pivotal.hamster.appmaster.hnp.HnpService.HnpState;
 import com.pivotal.hamster.common.HamsterConfig;
 import com.pivotal.hamster.common.HamsterException;
 
@@ -104,9 +105,12 @@ public class DefaultHnpLauncher extends HnpLauncher {
           return;
         }
         
-        // send a message to hamster terminate handler, this message will be ignored if "finish" is called by hnp
-        dispatcher.getEventHandler().handle(new HamsterFailureEvent(
-            new HamsterException("terminate before HNP called finish"), "terminate before HNP called finish"));
+        LOG.info("note HNP exit with exit code = " + exitCode);
+        if (service.getHnpState() != HnpState.Finished) {
+          // send a message to hamster terminate handler, this message will be ignored if "finish" is called by hnp
+          dispatcher.getEventHandler().handle(new HamsterFailureEvent(
+              new HamsterException("terminate before HNP called finish"), "terminate before HNP called finish"));
+        }
       }
     });
     

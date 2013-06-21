@@ -219,9 +219,6 @@ public class HamsterParamBuilder {
       mcaParams.put("plm", "yarn");
       mcaParams.put("odls", "yarn");
       
-      mcaParams.put("plm_base_verbose", "5");
-      mcaParams.put("ras_base_verbose", "5");
-      
       // append mca parameters
       for (Entry<String, String> e : mcaParams.entrySet()) {
         userParams.add("-mca");

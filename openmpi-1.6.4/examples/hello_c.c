@@ -12,7 +12,6 @@
 
 int main(int argc, char* argv[])
 {
-    sleep(40);
     int rank, size;
 
     MPI_Init(&argc, &argv);
