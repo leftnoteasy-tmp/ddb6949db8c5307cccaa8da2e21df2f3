@@ -107,7 +107,7 @@ static int register_to_am() {
     }
     pbc_rmessage_delete(response);
 
-    OPAL_OUTPUT_VERBOSE((5, orte_ras_base_framework.framework_output,
+    OPAL_OUTPUT_VERBOSE((5, orte_ras_base.ras_output,
                      "%s ras:yarn successfully registered to AM",
                      ORTE_NAME_PRINT(ORTE_PROC_MY_NAME)));
 
@@ -180,14 +180,14 @@ static int orte_ras_yarn_allocate_internal(int np, opal_list_t* nodes) {
         node->slots = np;
         opal_list_append(nodes, &node->super);
 
-        OPAL_OUTPUT_VERBOSE((5, orte_ras_base_framework.framework_output,
+        OPAL_OUTPUT_VERBOSE((5, orte_ras_base.ras_output,
                      "%s ras:yarn: adding node %s with %d slot",
                      ORTE_NAME_PRINT(ORTE_PROC_MY_NAME),
                      host, slot));
     }
 
     // All done
-    OPAL_OUTPUT_VERBOSE((1, orte_ras_base_framework.framework_output,
+    OPAL_OUTPUT_VERBOSE((1, orte_ras_base.ras_output,
                          "%s ras:yarn:allocate: success",
                          ORTE_NAME_PRINT(ORTE_PROC_MY_NAME)));
 
@@ -233,4 +233,8 @@ static int orte_ras_yarn_allocate(opal_list_t* nodes) {
     }
 
     return orte_ras_yarn_allocate_internal(slot_num, nodes);
+}
+
+static int orte_ras_yarn_finalize(void) {
+    // TODO, add code to close socket, etc.
 }

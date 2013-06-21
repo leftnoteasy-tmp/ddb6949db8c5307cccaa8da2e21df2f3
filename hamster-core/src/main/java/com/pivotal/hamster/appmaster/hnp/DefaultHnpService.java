@@ -27,6 +27,7 @@ import com.pivotal.hamster.appmaster.event.HamsterEvent;
 import com.pivotal.hamster.appmaster.event.HamsterEventType;
 import com.pivotal.hamster.appmaster.event.HamsterFailureEvent;
 import com.pivotal.hamster.appmaster.launcher.ContainerLauncher;
+import com.pivotal.hamster.appmaster.utils.HadoopRpcUtils;
 import com.pivotal.hamster.appmaster.utils.HamsterAppMasterUtils;
 import com.pivotal.hamster.common.CompletedContainer;
 import com.pivotal.hamster.common.HamsterContainer;
@@ -38,7 +39,6 @@ import com.pivotal.hamster.proto.HamsterProtos.AllocateResponseProto;
 import com.pivotal.hamster.proto.HamsterProtos.FinishRequestProto;
 import com.pivotal.hamster.proto.HamsterProtos.FinishResponseProto;
 import com.pivotal.hamster.proto.HamsterProtos.HamsterHnpRequestProto;
-import com.pivotal.hamster.proto.HamsterProtos.HeartbeatRequestProto;
 import com.pivotal.hamster.proto.HamsterProtos.HeartbeatResponseProto;
 import com.pivotal.hamster.proto.HamsterProtos.LaunchContextProto;
 import com.pivotal.hamster.proto.HamsterProtos.LaunchRequestProto;
@@ -49,7 +49,6 @@ import com.pivotal.hamster.proto.HamsterProtos.NodeResourceProto;
 import com.pivotal.hamster.proto.HamsterProtos.ProcessNameProto;
 import com.pivotal.hamster.proto.HamsterProtos.ProcessStateProto;
 import com.pivotal.hamster.proto.HamsterProtos.ProcessStatusProto;
-import com.pivotal.hamster.proto.HamsterProtos.RegisterRequestProto;
 import com.pivotal.hamster.proto.HamsterProtos.RegisterResponseProto;
 
 public class DefaultHnpService extends HnpService {
@@ -127,10 +126,16 @@ public class DefaultHnpService extends HnpService {
               }
               offset += rc;
             }
+
             HamsterHnpRequestProto proto = HamsterHnpRequestProto.parseFrom(msg);
             if (!proto.hasMsgType() || (!proto.hasRequest())) {
               LOG.error("this proto doesn't contain msg type of request, what happened?");
               throw new IOException("this proto doesn't contain msg type of request, what happened?");
+            }
+            
+            // to avoid too much output in log
+            if (proto.getMsgType() != MsgType.HEARTBEAT) {
+              LOG.info("recv [" + proto.getMsgType().name() + "] request from HNP");
             }
                         
             MsgType type = proto.getMsgType();
@@ -156,12 +161,12 @@ public class DefaultHnpService extends HnpService {
             } else if (type == MsgType.REGISTER) {
               // process register
               checkStateMatch(HnpState.Init);
-              RegisterRequestProto.parseFrom(proto.getRequest());
+              // RegisterRequestProto.parseFrom(proto.getRequest().toByteArray());
               doRegister(os);
             } else if (type == MsgType.HEARTBEAT) {
               // process heartbeat 
               mon.receivedPing(HnpLivenessMonitor.DEFAULT_EXPIRE);
-              HeartbeatRequestProto.parseFrom(proto.getRequest());
+              // HeartbeatRequestProto.parseFrom(proto.getRequest());
               doHeartbeat(os);
             } else {
               doFailedResponse(os, "not a valid request type, type=" + type);
@@ -249,7 +254,7 @@ public class DefaultHnpService extends HnpService {
     FinishResponseProto response = FinishResponseProto.newBuilder().build();
     
     if (succeed) {
-      LOG.info("HNP report succeed, diag=" + diag);
+      LOG.info("HNP report succeed");
       doSuccessResponse(os, response);
       containerAllocator.completeHnp(FinalApplicationStatus.SUCCEEDED);
       LOG.info("HNP reported succeed, terminate job");
@@ -257,7 +262,7 @@ public class DefaultHnpService extends HnpService {
     } else {
       doSuccessResponse(os, response);
       containerAllocator.completeHnp(FinalApplicationStatus.FAILED);
-      throw new HamsterException("HNP report failed, diag=" + diag);
+      throw new HamsterException("HNP report failed, diag");
     }
   }
   
@@ -270,8 +275,11 @@ public class DefaultHnpService extends HnpService {
   void doHeartbeat(DataOutputStream os) throws IOException {
     CompletedContainer[] completedProcess = containerAllocator.pullCompletedContainers();
     HeartbeatResponseProto.Builder builder = HeartbeatResponseProto.newBuilder();
+    mon.receivedPing(HnpLivenessMonitor.MONITOR);
+
     if (completedProcess == null || completedProcess.length == 0) {
       doSuccessResponse(os, builder.build());
+      return;
     }
     for (CompletedContainer c : completedProcess) {
       ProcessName name = containerIdToName.get(c.getContainerId());
@@ -279,6 +287,7 @@ public class DefaultHnpService extends HnpService {
         LOG.warn("get a completed container but not associate to a existing process, containerid=" + c.getContainerId());
         continue;
       }
+      LOG.info("send process completed msg to HNP, proc:" + name.toString() + " container_id:" + c.getContainerId());
       
       ProcessStatusProto proto = ProcessStatusProto.newBuilder().
           setName(name.getProcessNameProto()).
@@ -287,7 +296,6 @@ public class DefaultHnpService extends HnpService {
       builder.addCompletedProcesses(proto);
     }
     doSuccessResponse(os, builder.build());
-    mon.receivedPing(HnpLivenessMonitor.MONITOR);
   }
   
   void doAllocate(DataOutputStream os, int n) throws IOException {
@@ -398,14 +406,24 @@ public class DefaultHnpService extends HnpService {
   
   void doLaunch(DataOutputStream os, LaunchRequestProto launchRequest) throws IOException {
     List<LaunchContextProto> protoContexts = launchRequest.getLaunchContextsList();
+    
+    LOG.info("map processes to allocated containers");
+    
     LaunchContext[] launchContexts = mapProcessToAllocatedContainers(protoContexts);
+ 
+    LOG.info("after map processes to allocated containers");
+ 
     boolean[] result = containerLauncher.launch(launchContexts);
+    
+    LOG.info("after launch processes");
     
     // instanity check of result
     if (result.length != launchContexts.length) {
       LOG.error("element number of launch result not equals to input element number, please check");
       throw new HamsterException("element number of launch result not equals to input element number, please check");
     }
+    
+    LOG.info("recved " + launchContexts.length + " proc to be launched from HNP");
     
     // response to hnp
     LaunchResponseProto.Builder builder = LaunchResponseProto.newBuilder();
@@ -416,6 +434,8 @@ public class DefaultHnpService extends HnpService {
       builder.addResults(launchResult);
     }
     LaunchResponseProto response = builder.build();
+    
+    LOG.info("send " + result.length + " launch results to HNP");
     
     doSuccessResponse(os, response);
   }

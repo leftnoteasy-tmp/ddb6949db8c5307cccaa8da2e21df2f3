@@ -96,6 +96,9 @@
 #define ORTE_RML_TAG_YARN_SYNC_REQUEST      97
 #define ORTE_RML_TAG_YARN_SYNC_RESPONSE     98
 
+static const int WAIT_TIME_MICRO_SEC = 100 * 1000;            // 0.1 s
+static const int MAX_WAIT_TIME_MICRO_SEC = 120 * 1000 * 1000; // 120 s
+
 /*
  * TODO, remove these two global variables
  */
@@ -120,7 +123,7 @@ static int orte_odls_yarn_deliver_message(orte_jobid_t job, opal_buffer_t *buffe
 
 static void wait_process_completed(int fd, short event, void* cbdata);
 
-static void monitor_local_launch();
+static void monitor_local_launch(int fd, short event, void* cbdata);
 
 static void handle_proc_exit(orte_odls_child_t* child, int32_t status);
 
@@ -130,7 +133,14 @@ static orte_vpid_t get_vpid_from_err_file(const char* filename);
 
 static orte_vpid_t get_vpid_from_normal_file(const char* filename);
 
+static int pack_state_update(opal_buffer_t *alert, bool include_startup_info, orte_odls_job_t *jobdat);
+
 static bool any_live_children(orte_jobid_t job);
+
+typedef struct {
+    int detected_proc_num;
+    int total_wait_time;
+} yarn_local_monitor_t;
 
 /*
  * Module
@@ -204,14 +214,17 @@ static void yarn_daemon_sync_recv(int status, orte_process_name_t* sender,
                            opal_buffer_t* buffer, orte_rml_tag_t tag,
                            void* cbdata)
 {
-    OPAL_OUTPUT_VERBOSE((5, orte_odls_base_framework.framework_output,
+    OPAL_OUTPUT_VERBOSE((5, orte_odls_globals.output,
                      "%s odls:yarn:yarn_daemon_sync_recv: recved sync response from hnp, start tracking proc state",
                      ORTE_NAME_PRINT(ORTE_PROC_MY_NAME)));
 
+    yarn_local_monitor_t* mon = (yarn_local_monitor_t*)malloc(sizeof(yarn_local_monitor_t));
+    mon->detected_proc_num = 0;
+    mon->total_wait_time = 0;
     /*
      * since local procs are launched by YARN NM, we here just to check if procs are REALLY launched 
      */
-    monitor_local_launch();
+    monitor_local_launch(0, 0, mon);
 }
 
 
@@ -229,16 +242,13 @@ static orte_odls_child_t* get_local_child_by_id(orte_jobid_t jobid, orte_vpid_t 
     return NULL;
 }
 
-static void monitor_local_launch() {
-    const int WAIT_TIME_MICRO_SEC = 100 * 1000;            // 100 ms
-    const int MAX_WAIT_TIME_MICRO_SEC = 120 * 1000 * 1000; // 120 s
+static void monitor_local_launch(int fd, short event, void* cbdata) {
+    yarn_local_monitor_t* mon = (yarn_local_monitor_t*)cbdata;
     bool other_error = false; // other error (like cannot find proc correctly) will cause launch failed
     int rc;
     opal_list_item_t *item;
     orte_odls_child_t* child;
     orte_vpid_t vpid;
-    int detected_proc_num = 0;
-    int total_wait_time = 0;
     int total_local_children_num = opal_list_get_size(&orte_local_children);
     struct dirent *ent;
 
@@ -253,78 +263,88 @@ static void monitor_local_launch() {
     int path_len = strlen(pid_dir);
     sprintf(pid_dir + path_len, "/%u", jobid);
 
-    while (detected_proc_num < total_local_children_num) {
-        // see files in pid path
-        DIR* dirp = opendir(pid_dir);
-        int new_detected_proc = 0;
-        
-        if (dirp) {
-            while ((ent = readdir(dirp)) != NULL) {
-                if ((ent->d_name) && (strlen(ent->d_name) > 0)) {
-                    // if ent->d_name[0] not a valid number, skip it
-                    if (ent->d_name[0] > '9' || ent->d_name[0] < '0') {
-                        continue;
-                    }
+    // see files in pid path
+    DIR* dirp = opendir(pid_dir);
+    int new_detected_proc = 0;
+    
+    if (dirp) {
+        while ((ent = readdir(dirp)) != NULL) {
+            if ((ent->d_name) && (strlen(ent->d_name) > 0)) {
+                // if ent->d_name[0] not a valid number, skip it
+                if (ent->d_name[0] > '9' || ent->d_name[0] < '0') {
+                    continue;
+                }
 
-                    // error when fork child process
-                    if (strstr(ent->d_name, "_err")) {
-                        vpid = get_vpid_from_err_file(ent->d_name);
-                        child = get_local_child_by_id(jobid, vpid);
-                        if (!child) {
-                            ORTE_ERROR_LOG(ORTE_ERR_NOT_FOUND);
-                            other_error = true;
-                            goto MOVEON;
-                        }
-                        if (child->state < ORTE_PROC_STATE_UNTERMINATED) {
-                            child->alive = false;
-                            child->state = ORTE_PROC_STATE_FAILED_TO_START;
-                            detected_proc_num++;
-                            new_detected_proc++;
-                        }
-                        continue;
-                    }
-
-                    // not error, get filename/length
-                    vpid = get_vpid_from_normal_file(ent->d_name);
+                // error when fork child process
+                if (strstr(ent->d_name, "_err")) {
+                    vpid = get_vpid_from_err_file(ent->d_name);
                     child = get_local_child_by_id(jobid, vpid);
                     if (!child) {
                         ORTE_ERROR_LOG(ORTE_ERR_NOT_FOUND);
                         other_error = true;
                         goto MOVEON;
                     }
-
-                    // skip if the proc is already launched
-                    if (child->state >= ORTE_PROC_STATE_LAUNCHED) {
-                        continue;
+                    if (child->state < ORTE_PROC_STATE_UNTERMINATED) {
+                        child->alive = false;
+                        child->state = ORTE_PROC_STATE_FAILED_TO_START;
+                        mon->detected_proc_num++;
+                        new_detected_proc++;
                     }
-
-                    // we will think this is a new launched proc
-                    detected_proc_num++;
-                    new_detected_proc++;
-                    child->alive = true;
-                    child->state = ORTE_PROC_STATE_LAUNCHED;
+                    continue;
                 }
+
+                // not error, get filename/length
+                vpid = get_vpid_from_normal_file(ent->d_name);
+                child = get_local_child_by_id(jobid, vpid);
+                if (!child) {
+                    ORTE_ERROR_LOG(ORTE_ERR_NOT_FOUND);
+                    other_error = true;
+                    goto MOVEON;
+                }
+
+                // skip if the proc is already launched
+                if (child->state >= ORTE_PROC_STATE_LAUNCHED) {
+                    continue;
+                }
+
+                // we will think this is a new launched proc
+                mon->detected_proc_num++;
+                new_detected_proc++;
+                child->alive = true;
+                child->state = ORTE_PROC_STATE_LAUNCHED;
             }
-            closedir(dirp);
         }
-
-        if (new_detected_proc > 0) {
-            OPAL_OUTPUT_VERBOSE((5, orte_odls_base_framework.framework_output,
-                         "%s odls:yarn we have [%d] local_children, now [%d] are detected",
-                         ORTE_NAME_PRINT(ORTE_PROC_MY_NAME), total_local_children_num, detected_proc_num));
-        }
-
-        total_wait_time += WAIT_TIME_MICRO_SEC;
-        usleep(WAIT_TIME_MICRO_SEC); // sleep for a while before next check
-
-        if (total_wait_time > MAX_WAIT_TIME_MICRO_SEC) {
-            opal_output(0, "%s odls:yarn timed out for wait local proc launched",
-                ORTE_NAME_PRINT(ORTE_PROC_MY_NAME));
-            ORTE_ERROR_LOG(ORTE_ERR_TIMEOUT);
-            other_error = true;
-            goto MOVEON;
-        }
+        closedir(dirp);
     }
+
+    if (new_detected_proc > 0) {
+        OPAL_OUTPUT_VERBOSE((5, orte_odls_globals.output,
+                     "%s odls:yarn we have [%d] local_children, now [%d] are detected",
+                     ORTE_NAME_PRINT(ORTE_PROC_MY_NAME), total_local_children_num, detected_proc_num));
+    }
+
+    mon->total_wait_time += WAIT_TIME_MICRO_SEC;
+
+    if (mon->total_wait_time > MAX_WAIT_TIME_MICRO_SEC) {
+        opal_output(0, "%s odls:yarn timed out for wait local proc launched",
+            ORTE_NAME_PRINT(ORTE_PROC_MY_NAME));
+        ORTE_ERROR_LOG(ORTE_ERR_TIMEOUT);
+        other_error = true;
+        goto MOVEON;
+    }
+
+    if (mon->detected_proc_num < total_local_children_num) {
+        // start to query finished processes, every 1 sec
+        opal_event_t* ev = NULL;
+        ev = (opal_event_t*)malloc(sizeof(opal_event_t));
+        opal_evtimer_set(ev, monitor_local_launch, mon);
+        struct timeval delay;
+        delay.tv_sec = 0;
+        delay.tv_usec = WAIT_TIME_MICRO_SEC;
+        opal_evtimer_add(ev, &delay);
+        return;
+    }
+    free(mon);
 
 MOVEON:
     // we will mark all proc not launched to LAUNCH_FAILED when this error happened
@@ -378,6 +398,98 @@ MOVEON:
     delay.tv_usec = 0;
     opal_evtimer_add(ev, &delay);
 }
+
+static int pack_state_for_proc(opal_buffer_t *alert, bool include_startup_info, orte_odls_child_t *child)
+{
+    int rc;
+    
+    /* pack the child's vpid */
+    if (ORTE_SUCCESS != (rc = opal_dss.pack(alert, &(child->name->vpid), 1, ORTE_VPID))) {
+        ORTE_ERROR_LOG(rc);
+        return rc;
+    }
+    /* pack startup info if we need to report it */
+    if (include_startup_info) {
+        if (ORTE_SUCCESS != (rc = opal_dss.pack(alert, &child->pid, 1, OPAL_PID))) {
+            ORTE_ERROR_LOG(rc);
+            return rc;
+        }
+        /* if we are timing things, pack the time the proc was launched */
+        if (orte_timing) {
+            int64_t tmp;
+            tmp = child->starttime.tv_sec;
+            if (ORTE_SUCCESS != (rc = opal_dss.pack(alert, &tmp, 1, OPAL_INT64))) {
+                ORTE_ERROR_LOG(rc);
+                return rc;
+            }
+            tmp = child->starttime.tv_usec;
+            if (ORTE_SUCCESS != (rc = opal_dss.pack(alert, &tmp, 1, OPAL_INT64))) {
+                ORTE_ERROR_LOG(rc);
+                return rc;
+            }
+        }
+    }
+    /* pack its state */
+    if (ORTE_SUCCESS != (rc = opal_dss.pack(alert, &child->state, 1, ORTE_PROC_STATE))) {
+        ORTE_ERROR_LOG(rc);
+        return rc;
+    }
+    /* pack its exit code */
+    if (ORTE_SUCCESS != (rc = opal_dss.pack(alert, &child->exit_code, 1, ORTE_EXIT_CODE))) {
+        ORTE_ERROR_LOG(rc);
+        return rc;
+    }
+    
+    return ORTE_SUCCESS;
+}
+
+static int pack_state_update(opal_buffer_t *alert, bool include_startup_info, orte_odls_job_t *jobdat)
+{
+    int rc;
+    opal_list_item_t *item;
+    orte_odls_child_t *child;
+    orte_vpid_t null=ORTE_VPID_INVALID;
+    
+    /* pack the jobid */
+    if (ORTE_SUCCESS != (rc = opal_dss.pack(alert, &jobdat->jobid, 1, ORTE_JOBID))) {
+        ORTE_ERROR_LOG(rc);
+        return rc;
+    }
+    /* if we are timing things, pack the time the launch msg for this job was recvd */
+    if (include_startup_info && orte_timing) {
+        int64_t tmp;
+        tmp = jobdat->launch_msg_recvd.tv_sec;
+        if (ORTE_SUCCESS != (rc = opal_dss.pack(alert, &tmp, 1, OPAL_INT64))) {
+            ORTE_ERROR_LOG(rc);
+            return rc;
+        }
+        tmp = jobdat->launch_msg_recvd.tv_usec;
+        if (ORTE_SUCCESS != (rc = opal_dss.pack(alert, &tmp, 1, OPAL_INT64))) {
+            ORTE_ERROR_LOG(rc);
+            return rc;
+        }
+    }
+    for (item = opal_list_get_first(&orte_local_children);
+         item != opal_list_get_end(&orte_local_children);
+         item = opal_list_get_next(item)) {
+        child = (orte_odls_child_t*)item;
+        /* if this child is part of the job... */
+        if (child->name->jobid == jobdat->jobid) {
+            if (ORTE_SUCCESS != (rc = pack_state_for_proc(alert, include_startup_info, child))) {
+                ORTE_ERROR_LOG(rc);
+                return rc;
+            }
+        }
+    }
+    /* flag that this job is complete so the receiver can know */
+    if (ORTE_SUCCESS != (rc = opal_dss.pack(alert, &null, 1, ORTE_VPID))) {
+        ORTE_ERROR_LOG(rc);
+        return rc;
+    }
+    
+    return ORTE_SUCCESS;
+}
+
 
 static void wait_process_completed(int fd, short event, void* cbdata) {
     bool other_error = false; // other error (like cannot find proc correctly) will cause launch failed
@@ -477,8 +589,8 @@ static void wait_process_completed(int fd, short event, void* cbdata) {
     }
 
     if (new_detected_proc > 0) {
-        OPAL_OUTPUT_VERBOSE((5, orte_odls_base_framework.framework_output,
-                     "%s odls:yarn %d completed in this turn",
+        OPAL_OUTPUT_VERBOSE((5, orte_odls_globals.output,
+                     "%s odls:yarn #%d proc completed in this turn",
                      ORTE_NAME_PRINT(ORTE_PROC_MY_NAME), new_detected_proc));
     }
 
@@ -871,7 +983,7 @@ static int orte_odls_yarn_launch_local_procs(opal_buffer_t *data)
         OBJ_RELEASE(msg);
         return rc;
     }
-    OPAL_OUTPUT_VERBOSE((5, orte_odls_base_framework.framework_output,
+    OPAL_OUTPUT_VERBOSE((5, orte_odls_globals.output,
                      "%s odls:yarn:orte_odls_yarn_launch_local_procs: finish send sync request to hnp, waitting for response ",
                      ORTE_NAME_PRINT(ORTE_PROC_MY_NAME)));
 

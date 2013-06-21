@@ -329,11 +329,9 @@ public class HamsterCliTest {
     final String HAMSTER_HOME = "/path/to/hamster";
 
     // set necessary properties
-    cli.conf.setBoolean(HamsterConfig.HAMSTER_PREINSTALL_PROPERTY_KEY, true);
+    cli.conf.setBoolean(HamsterConfig.OMPI_PREINSTALL_PROPERTY_KEY, true);
     cli.conf
-        .set(HamsterConfig.HAMSTER_HOME_PROPERTY_KEY, HAMSTER_HOME);
-    cli.conf.set(HamsterConfig.HAMSTER_YARN_VERSION_PROPERTY_KEY,
-        "2.0.2-alpha");
+        .set(HamsterConfig.OMPI_HOME_PROPERTY_KEY, HAMSTER_HOME);
 
     // create a add file/archive
     createLocalFile("file.data", 1111);
@@ -365,7 +363,7 @@ public class HamsterCliTest {
     
     // check command line
     Assert.assertEquals(ctx.getAMContainerSpec().getCommands().get(0), 
-        "mpirun -mca odls yarn -mca plm yarn -mca ras yarn -np 2 hello 1><LOG_DIR>/stdout 2><LOG_DIR>/stderr");
+        "$JAVA_HOME/bin/java -Xmx512M -Xms16M -cp ./*:$HADOOP_CONF_DIR:$HADOOP_COMMON_HOME/share/hadoop/common/*:$HADOOP_COMMON_HOME/share/hadoop/common/lib/*:$HADOOP_HDFS_HOME/share/hadoop/hdfs/*:$HADOOP_HDFS_HOME/share/hadoop/hdfs/lib/*:$HADOOP_YARN_HOME/share/hadoop/yarn/*:$HADOOP_YARN_HOME/share/hadoop/yarn/lib/*:hamster-core.jar com.pivotal.hamster.appmaster.HamsterAppMaster mpirun -mca odls yarn -mca plm yarn -mca ras yarn -np 2 hello 1><LOG_DIR>/stdout 2><LOG_DIR>/stderr");
   }
 
   private void assertFileExists(

@@ -30,6 +30,11 @@ public class ProcessName {
   }
   
   @Override
+  public String toString() {
+    return "{" + jobId + "," + vpId + "}";
+  }
+  
+  @Override
   public int hashCode() {
     return jobId * BIG_PRIME + vpId;
   }

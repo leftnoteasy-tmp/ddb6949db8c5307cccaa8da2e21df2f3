@@ -79,6 +79,8 @@
 #include "orte/mca/rml/rml.h"
 #include "orte/mca/grpcomm/grpcomm.h"
 
+#define ORTE_RML_TAG_YARN_SYNC_REQUEST      97
+#define ORTE_RML_TAG_YARN_SYNC_RESPONSE     98
 
 extern char** environ;
 static int num_sync_daemons = 0;
@@ -94,6 +96,7 @@ static int plm_yarn_init(void);
 static int plm_yarn_launch_job(orte_job_t *jdata);
 static int plm_yarn_terminate_orteds(void);
 static int plm_yarn_signal_job(orte_jobid_t jobid, int32_t signal);
+static int plm_yarn_terminate_job(orte_jobid_t jobid);
 static int plm_yarn_finalize(void);
 
 
@@ -111,22 +114,23 @@ static void yarn_hnp_sync_recv(int status, orte_process_name_t* sender,
 
 static int plm_yarn_actual_launch_procs(orte_job_t* jdata);
 static int setup_proc_env_and_argv(orte_job_t* jdata, orte_app_context_t* app,
-        orte_proc_t* proc, char **argv, char **env);
+        orte_proc_t* proc, char ***argv, char ***env);
 
 static void heartbeat_with_AM_cb(int fd, short event, void *data);
-static void finish_app_master();
+static void finish_app_master(bool succeed);
 static void process_state_monitor_cb(int fd, short args, void *cbdata);
+
 
 
 /*
  * Global variable
  */
-orte_plm_base_module_1_0_0_t orte_plm_slurm_module = {
+orte_plm_base_module_1_0_0_t orte_plm_yarn_module = {
     plm_yarn_init,
     orte_plm_base_set_hnp_name,
     plm_yarn_launch_job,
     NULL,
-    orte_plm_base_orted_terminate_job,
+    plm_yarn_terminate_job,
     plm_yarn_terminate_orteds,
     orte_plm_base_orted_kill_local_procs,
     plm_yarn_signal_job,
@@ -204,8 +208,7 @@ static int setup_daemon_proc_env_and_argv(orte_proc_t* proc, char **argv,
 
     /* pass the uri of the hnp */
     asprintf(&param, "\\\"%s\\\"", orte_rml.get_contact_info());
-    opal_argv_append(argc, &argv, "-mca");
-    opal_argv_append(argc, &argv, "orte_hnp_uri");
+    opal_argv_append(argc, &argv, "--hnp-uri");
     opal_argv_append(argc, &argv, param);
     free(param);
 
@@ -227,9 +230,9 @@ static int setup_daemon_proc_env_and_argv(orte_proc_t* proc, char **argv,
     if (getenv("HAMSTER_VERBOSE")) {
         char* join_argv = opal_argv_join(argv, ' ');
         char* join_env = opal_argv_join(env, ' ');
-        OPAL_OUTPUT_VERBOSE((5, orte_plm_base_framework.framework_output, "%s plm:yarn launch_daemon argv=%s",
+        OPAL_OUTPUT_VERBOSE((5, orte_plm_globals.output, "%s plm:yarn launch_daemon argv=%s",
             ORTE_NAME_PRINT(ORTE_PROC_MY_NAME), join_argv));
-        OPAL_OUTPUT_VERBOSE((5, orte_plm_base_framework.framework_output, "%s plm:yarn launch_daemon env=%s",
+        OPAL_OUTPUT_VERBOSE((5, orte_plm_globals.output, "%s plm:yarn launch_daemon env=%s",
             ORTE_NAME_PRINT(ORTE_PROC_MY_NAME), join_env));
         if (join_argv) {
             free(join_argv);
@@ -329,7 +332,7 @@ static int launch_daemons(orte_job_t* jdata)
             goto cleanup;
         }
 
-        rc = pbc_wmessage_integer(proccess_name_msg, "jobid", proc->name.jobid, 0);
+        rc = pbc_wmessage_integer(proccess_name_msg, "jobid", ORTE_LOCAL_JOBID(proc->name.jobid), 0);
         if (0 != rc) {
             opal_output(0,
                     "%s plm:yarn:launch_daemons pack jobid in proccess_name_msg failed",
@@ -354,13 +357,17 @@ cleanup:
         if (env) {
             opal_argv_free(env);
         }
+        if (join_argv) {
+            free(join_argv);
+        }
         if (error_flag) {
             pbc_wmessage_delete(request_msg);
-            finish_app_master();
             ORTE_UPDATE_EXIT_STATUS(ORTE_ERROR_DEFAULT_EXIT_CODE);
             return ORTE_ERROR;
         }
     }
+
+    struct pbc_rmessage* response_msg = NULL;
 
     /* 2. send launch deamon procs request msg */
     rc = orte_hdclient_send_message_and_delete(request_msg, HAMSTER_MSG_LAUNCH);
@@ -386,7 +393,7 @@ cleanup:
          optional int32 vpid = 2;
      }
      */
-    struct pbc_rmessage* response_msg = orte_hdclient_recv_message("LaunchResponseProto");
+    response_msg = orte_hdclient_recv_message("LaunchResponseProto");
     if (!response_msg) {
         opal_output(0,
                 "%s plm:yarn:launch_daemons error happened when recv launch response msg from AM",
@@ -395,8 +402,9 @@ cleanup:
     }
 
     int n = pbc_rmessage_size(response_msg, "results");
-    if (n <= 0) {
-        opal_output(0, "%s plm:yarn:launch_daemons got n(=%d) <= 0, please check",
+
+    if (n < 0) {
+        opal_output(0, "%s plm:yarn:launch_daemons got n(=%d) < 0, please check",
                 ORTE_NAME_PRINT(ORTE_PROC_MY_NAME), n);
         goto launch_daemons_failed;
     }
@@ -441,18 +449,17 @@ cleanup:
     if (num_launched_daemon_procs == (daemons->num_procs-1)) {
         jdata->state = ORTE_JOB_STATE_LAUNCHED;
         daemons->state = ORTE_JOB_STATE_LAUNCHED;
-        OPAL_OUTPUT_VERBOSE((5, orte_ras_base_framework.framework_output,
+        OPAL_OUTPUT_VERBOSE((5, orte_plm_globals.output,
                         "%s plm:yarn:launch_daemons: launch daemon proc successfully with AM",
                         ORTE_NAME_PRINT(ORTE_PROC_MY_NAME)));
     }
-    pbc_wmessage_delete(request_msg);
     pbc_rmessage_delete(response_msg);
     return ORTE_SUCCESS;
 
 launch_daemons_failed:
-    pbc_wmessage_delete(request_msg);
-    pbc_rmessage_delete(response_msg);
-    finish_app_master();
+    if (response_msg) {
+        pbc_rmessage_delete(response_msg);
+    }
     ORTE_UPDATE_EXIT_STATUS(ORTE_ERROR_DEFAULT_EXIT_CODE);
     return ORTE_ERROR;
 }
@@ -473,6 +480,9 @@ static void heartbeat_with_AM_cb(int fd, short event, void *data)
     if (!request_msg) {
         opal_output(0, "%s plm:yarn:heartbeat_with_AM_cb: failed to create request_msg",
                 ORTE_NAME_PRINT(ORTE_PROC_MY_NAME));
+        ORTE_ERROR_LOG(ORTE_ERROR_DEFAULT_EXIT_CODE);
+        ORTE_UPDATE_EXIT_STATUS(ORTE_ERROR_DEFAULT_EXIT_CODE);
+        orte_trigger_event(&orte_exit);
         return;
     }
 
@@ -482,7 +492,10 @@ static void heartbeat_with_AM_cb(int fd, short event, void *data)
         opal_output(0,
                 "%s plm:yarn:heartbeat_with_AM_cb: error happened when send request_msg to AM",
                 ORTE_NAME_PRINT(ORTE_PROC_MY_NAME));
-        goto cleanup;
+        ORTE_ERROR_LOG(ORTE_ERROR_DEFAULT_EXIT_CODE);
+        ORTE_UPDATE_EXIT_STATUS(ORTE_ERROR_DEFAULT_EXIT_CODE);
+        orte_trigger_event(&orte_exit);
+        return;
     }
 
     /* 3. recv response and parse the msg*/
@@ -517,9 +530,9 @@ static void heartbeat_with_AM_cb(int fd, short event, void *data)
     }
 
     int n = pbc_rmessage_size(response_msg, "completed_processes");
-    if (n <= 0) {
+    if (n < 0) {
         opal_output(0,
-                "%s plm:yarn:heartbeat_with_AM_cb: got n(=%d) <= 0, please check",
+                "%s plm:yarn:heartbeat_with_AM_cb: got n(=%d) < 0, please check",
                 ORTE_NAME_PRINT(ORTE_PROC_MY_NAME), n);
         goto cleanup;
     }
@@ -545,7 +558,6 @@ static void heartbeat_with_AM_cb(int fd, short event, void *data)
         uint32_t vpid = pbc_rmessage_integer(proc_name_msg, "vpid", 0, NULL);
 
         uint32_t exit_value = pbc_rmessage_integer(completed_procs_msg, "exit_value", 0, NULL);
-        ORTE_UPDATE_EXIT_STATUS(exit_value);
 
         /* next, we will modify proc's state */
         orte_job_t* tmp_jdata = (orte_job_t*) opal_pointer_array_get_item(orte_job_data, local_jobid);
@@ -557,7 +569,11 @@ static void heartbeat_with_AM_cb(int fd, short event, void *data)
         }
 
         if (exit_value == -1000 || exit_value == -100 || exit_value == -101) {
+            opal_output(0, "%s plm:yarn:heartbeat proc failed to start", ORTE_NAME_PRINT(ORTE_PROC_MY_NAME));
+            ORTE_ERROR_LOG(ORTE_ERROR);
             proc->state = ORTE_PROC_STATE_FAILED_TO_START;
+            ORTE_UPDATE_EXIT_STATUS(ORTE_ERROR_DEFAULT_EXIT_CODE);
+            orte_trigger_event(&orte_exit);
         } else {
             /* here, means currently the proc's state < ORTE_PROC_STATE_TERMINATED,
              * however, from AM, we got the proc's container is terminated,
@@ -569,8 +585,8 @@ static void heartbeat_with_AM_cb(int fd, short event, void *data)
             struct timeval delay;
             delay.tv_sec = 15;
             delay.tv_usec = 0;
-            opal_evtimer_add(ev, &delay);
             opal_evtimer_set(ev, process_state_monitor_cb, proc);
+            opal_evtimer_add(ev, &delay);
         }
 
         if (tmp_jdata->jobid == jdata->jobid) {
@@ -579,15 +595,15 @@ static void heartbeat_with_AM_cb(int fd, short event, void *data)
     }
 
 cleanup:
-    pbc_wmessage_delete(request_msg);
-    pbc_rmessage_delete(response_msg);
+    if (response_msg) {
+        pbc_rmessage_delete(response_msg);
+    }
 
     if (num_completed_jdata_procs == jdata->num_procs) {
         /*
          * all procs are completed, send finish request to AM,
          * modify job state to ORTE_JOB_STATE_TERMINATED
          */
-        finish_app_master();
         jdata->state = ORTE_JOB_STATE_TERMINATED;
         return;
     } else {
@@ -598,69 +614,31 @@ cleanup:
         struct timeval delay;
         delay.tv_sec = 1;
         delay.tv_usec = 0;
-        opal_evtimer_add(ev, &delay);
-
         opal_evtimer_set(ev, heartbeat_with_AM_cb, jdata);
+        opal_evtimer_add(ev, &delay);
     }
 }
 
 static void process_state_monitor_cb(int fd, short args, void *cbdata)
 {
     orte_proc_t *proc = (orte_proc_t*)cbdata;
-    if(proc->state >= ORTE_PROC_STATE_TERMINATED)
+    if(proc->state >= ORTE_PROC_STATE_TERMINATED) { 
         return;
-    else {
-        proc->state = ORTE_PROC_STATE_ABORTED;  //
     }
+    
+    proc->state = ORTE_PROC_STATE_ABORTED;
+    opal_output(0, "%s recved aborted proc from AM, proc:%d", 
+            ORTE_NAME_PRINT(ORTE_PROC_MY_NAME), 
+            proc->name.vpid);
+    ORTE_ERROR_LOG(ORTE_ERROR_DEFAULT_EXIT_CODE);
+    ORTE_UPDATE_EXIT_STATUS(ORTE_ERROR_DEFAULT_EXIT_CODE);
+    orte_trigger_event(&orte_exit);
 }
 
-static void finish_app_master()
+static void finish_app_master(bool succeed)
 {
     int rc;
-    orte_proc_t *proc;
-    orte_job_t *jdata;
-    int i;
-    uint32_t j;
-    bool proc_failed = false;
-    bool job_failed = false;
-
-    bool success_flag = false;
-    char *diag_msg = "";
-
-    if (appmaster_finished) {
-        return;
-    }
-
-    for (i = 0; i < orte_job_data->size; i++) {
-        jdata = opal_pointer_array_get_item(orte_job_data, i);
-        if (!jdata) {
-            continue;
-        }
-        if (jdata->state > ORTE_JOB_STATE_TERMINATED) {
-            job_failed = true;
-            break;
-        }
-        /* check proc state in this job */
-        for (j = 0; j < jdata->num_procs; j++) {
-            proc = opal_pointer_array_get_item(jdata->procs, j);
-            if (!proc) {
-                continue;
-            }
-            if (proc->state > ORTE_PROC_STATE_TERMINATED) {
-                proc_failed = true;
-                break;
-            }
-        }
-        if (proc_failed) {
-            break;
-        }
-    }
-
-    if (job_failed || proc_failed) {
-        success_flag = false;
-    } else {
-        success_flag = true;
-    }
+    char *diag_msg = "finish_app_master";
 
     /* 1. create launch message */
     /*
@@ -677,7 +655,7 @@ static void finish_app_master()
         goto cleanup;
     }
 
-    rc = pbc_wmessage_integer(request_msg, "succeed", success_flag, 0);
+    rc = pbc_wmessage_integer(request_msg, "succeed", succeed, 0);
     if (0 != rc) {
         opal_output(0,
                 "%s plm:yarn:finish_app_master: pack succeed in request_msg failed",
@@ -718,8 +696,9 @@ static void finish_app_master()
     appmaster_finished = true;
 
 cleanup:
-    pbc_wmessage_delete(request_msg);
-    pbc_rmessage_delete(response_msg);
+    if (response_msg) {
+        pbc_rmessage_delete(response_msg);
+    }
 }
 
 /* When working in this function, ALWAYS jump to "cleanup" if
@@ -761,9 +740,9 @@ static int plm_yarn_launch_job(orte_job_t *jdata)
     struct timeval delay;
     delay.tv_sec = 1;
     delay.tv_usec = 0;
-    opal_evtimer_add(ev, &delay);
 
     opal_evtimer_set(ev, heartbeat_with_AM_cb, jdata);
+    opal_evtimer_add(ev, &delay);
     //===================================
 
     if (NULL == jdata) {
@@ -868,7 +847,7 @@ launch_apps:
 
     /* register recv callback for daemons sync request */
     if (ORTE_SUCCESS != (rc = orte_rml.recv_buffer_nb(ORTE_NAME_WILDCARD,
-                    ORTE_RML_TAG_ORTED_CALLBACK, ORTE_RML_PERSISTENT,
+                    ORTE_RML_TAG_YARN_SYNC_REQUEST, ORTE_RML_PERSISTENT,
                     yarn_hnp_sync_recv, jdata))) {
         ORTE_ERROR_LOG(rc);
         goto cleanup;
@@ -930,12 +909,12 @@ static void yarn_hnp_sync_recv(int status, orte_process_name_t* sender,
 
     /* we got all daemons synced */
     if (daemons->num_procs == num_sync_daemons) {
-        OPAL_OUTPUT_VERBOSE((5, orte_plm_base_framework.framework_output,
+        OPAL_OUTPUT_VERBOSE((5, orte_plm_globals.output,
                         "%s plm:yarn:yarn_hnp_sync_recv: we got all daemons sync, will launch proc in NM",
                         ORTE_NAME_PRINT(ORTE_PROC_MY_NAME)));
 
         msg = OBJ_NEW(opal_buffer_t);
-        if (ORTE_SUCCESS != (rc = orte_grpcomm.xcast(ORTE_PROC_MY_NAME->jobid, msg, ORTE_RML_TAG_DAEMON))) { //ORTE_RML_TAG_DAEMON
+        if (ORTE_SUCCESS != (rc = orte_grpcomm.xcast(ORTE_PROC_MY_NAME->jobid, msg, ORTE_RML_TAG_YARN_SYNC_RESPONSE))) { //ORTE_RML_TAG_DAEMON
             ORTE_ERROR_LOG(rc);
             opal_output(0, "%s plm:yarn:yarn_hnp_sync_recv: failed to send sync response to daemon processes.",
                 ORTE_NAME_PRINT(ORTE_PROC_MY_NAME));
@@ -951,7 +930,7 @@ static void yarn_hnp_sync_recv(int status, orte_process_name_t* sender,
         }
     }
 
-    OPAL_OUTPUT_VERBOSE((5, orte_plm_base_framework.framework_output,
+    OPAL_OUTPUT_VERBOSE((5, orte_plm_globals.output,
                 "%s plm:yarn:yarn_hnp_sync_recv: we got [%d/%d] daemons yarn sync request",
                 ORTE_NAME_PRINT(ORTE_PROC_MY_NAME), num_sync_daemons, daemons->num_procs));
 }
@@ -969,7 +948,7 @@ static int plm_yarn_actual_launch_procs(orte_job_t* jdata)
     bool error_flag = false;
     int num_launched_procs = 0;
 
-    OPAL_OUTPUT_VERBOSE((5, orte_plm_base_framework.framework_output,
+    OPAL_OUTPUT_VERBOSE((5, orte_plm_globals.output,
                     "%s plm:yarn:launch_apps for job %s",
                     ORTE_NAME_PRINT(ORTE_PROC_MY_NAME),
                     ORTE_JOBID_PRINT(jdata->jobid)));
@@ -1009,7 +988,7 @@ static int plm_yarn_actual_launch_procs(orte_job_t* jdata)
         app = (orte_app_context_t*) opal_pointer_array_get_item(jdata->apps,
                 proc->app_idx);
 
-        rc = setup_proc_env_and_argv(jdata, app, proc, argv, env);
+        rc = setup_proc_env_and_argv(jdata, app, proc, &argv, &env);
         if (rc != 0) {
             opal_output(0,
                     "%s plm:yarn:plm_yarn_actual_launch_procs: setup_proc_env_and_argv failed.",
@@ -1021,11 +1000,15 @@ static int plm_yarn_actual_launch_procs(orte_job_t* jdata)
 
         /* print launch commandline and env when this env is specified */
         if (getenv("HAMSTER_VERBOSE")) {
+
             char* join_argv = opal_argv_join(argv, ' ');
             char* join_env = opal_argv_join(env, ' ');
-            OPAL_OUTPUT_VERBOSE((5, orte_plm_base_framework.framework_output, "%s plm:yarn launch argv=%s",
-                            ORTE_NAME_PRINT(ORTE_PROC_MY_NAME), join_argv));OPAL_OUTPUT_VERBOSE((5, orte_plm_base_framework.framework_output, "%s plm:yarn launch env=%s",
+
+            OPAL_OUTPUT_VERBOSE((5, orte_plm_globals.output, "%s plm:yarn launch argv=%s",
+                            ORTE_NAME_PRINT(ORTE_PROC_MY_NAME), join_argv));
+            OPAL_OUTPUT_VERBOSE((5, orte_plm_globals.output, "%s plm:yarn launch env=%s",
                             ORTE_NAME_PRINT(ORTE_PROC_MY_NAME), join_env));
+
             if (join_argv) {
                 free(join_argv);
             }
@@ -1034,7 +1017,7 @@ static int plm_yarn_actual_launch_procs(orte_job_t* jdata)
             }
         }
 
-        OPAL_OUTPUT_VERBOSE((5, orte_plm_base_framework.framework_output,
+        OPAL_OUTPUT_VERBOSE((5, orte_plm_globals.output,
                         "%s plm:yarn:plm_yarn_actual_launch_procs: after setup env and argv for proc=%d.",
                         ORTE_NAME_PRINT(ORTE_PROC_MY_NAME), idx));
 
@@ -1067,7 +1050,7 @@ static int plm_yarn_actual_launch_procs(orte_job_t* jdata)
             goto cleanup;
         }
 
-        rc = pbc_wmessage_integer(proccess_name_msg, "jobid", proc->name.jobid, 0);
+        rc = pbc_wmessage_integer(proccess_name_msg, "jobid", ORTE_LOCAL_JOBID(proc->name.jobid), 0);
         if (0 != rc) {
             opal_output(0,
                     "%s plm:yarn:plm_yarn_actual_launch_procs: pack jobid in proccess_name_msg failed",
@@ -1088,14 +1071,18 @@ static int plm_yarn_actual_launch_procs(orte_job_t* jdata)
 cleanup:
         /* free argv and env for this proc */
         if (argv) {
-            opal_argv_free(argv);
+            // TODO
+            // opal_argv_free(argv);
         }
         if (env) {
-            opal_argv_free(env);
+            // TODO
+            // opal_argv_free(env);
+        }
+        if (join_argv) {
+            free(join_argv);
         }
         if (error_flag) {
             pbc_wmessage_delete(request_msg);
-            finish_app_master();
             ORTE_UPDATE_EXIT_STATUS(ORTE_ERROR_DEFAULT_EXIT_CODE);
             return ORTE_ERROR;
         }
@@ -1127,6 +1114,7 @@ cleanup:
      }
      */
     struct pbc_rmessage* response_msg = orte_hdclient_recv_message("LaunchResponseProto");
+
     if (!response_msg) {
         opal_output(0,
                 "%s plm:yarn:plm_yarn_actual_launch_procs: error happened when recv launch response msg from AM",
@@ -1181,29 +1169,64 @@ cleanup:
     /* 4. if all jdata procs are launched successfully, then modify the job's state */
     if (num_launched_procs == jdata->num_procs) {
         jdata->state = ORTE_JOB_STATE_RUNNING;
-        OPAL_OUTPUT_VERBOSE((5, orte_ras_base_framework.framework_output,
+        OPAL_OUTPUT_VERBOSE((5, orte_plm_globals.output,
                         "%s plm:yarn:plm_yarn_actual_launch_procs: launch jdata procs successfully with AM",
                         ORTE_NAME_PRINT(ORTE_PROC_MY_NAME)));
     }
-    pbc_wmessage_delete(request_msg);
     pbc_rmessage_delete(response_msg);
+
     return ORTE_SUCCESS;
 
 launch_procs_failed:
-    pbc_wmessage_delete(request_msg);
-    pbc_rmessage_delete(response_msg);
-    finish_app_master();
+    if (response_msg) {
+        pbc_rmessage_delete(response_msg);
+    }
     ORTE_UPDATE_EXIT_STATUS(ORTE_ERROR_DEFAULT_EXIT_CODE);
     return ORTE_ERROR;
+}
+
+static int prepend_nosize(char ***argv, const char *arg)
+{
+    int argc;
+    int i;
+
+    /* Create new argv. */
+
+    if (NULL == *argv) {
+        *argv = (char**) malloc(2 * sizeof(char *));
+        if (NULL == *argv) {
+            return OPAL_ERR_OUT_OF_RESOURCE;
+        }
+        (*argv)[0] = strdup(arg);
+        (*argv)[1] = NULL;
+    } else {
+        /* count how many entries currently exist */
+        argc = opal_argv_count(*argv);
+        
+        *argv = (char**) realloc(*argv, (argc + 2) * sizeof(char *));
+        if (NULL == *argv) {
+            return OPAL_ERR_OUT_OF_RESOURCE;
+        }
+        (*argv)[argc+1] = NULL;
+
+        /* shift all existing elements down 1 */
+        for (i=argc; 0 < i; i--) {
+            (*argv)[i] = (*argv)[i-1];
+        }
+        (*argv)[0] = strdup(arg);
+    }
+
+    return OPAL_SUCCESS;
 }
 
 /*
  * setup env and argv for specified process
  */
 static int setup_proc_env_and_argv(orte_job_t* jdata, orte_app_context_t* app,
-        orte_proc_t* proc, char **argv, char **env)
+        orte_proc_t* proc, char ***pargv, char ***penv)
 {
     char* param;
+    char* param2;
     char* value;
     char* vp_id_str;
     char* job_id_str;
@@ -1217,7 +1240,7 @@ static int setup_proc_env_and_argv(orte_job_t* jdata, orte_app_context_t* app,
         return ORTE_ERROR;
     }
 
-    argv = opal_argv_copy(app->argv);
+    *pargv = opal_argv_copy(app->argv);
 
     if (ORTE_SUCCESS != orte_util_convert_jobid_to_string(&job_id_str, jdata->jobid)) {
         ORTE_ERROR_LOG(ORTE_ERR_OUT_OF_RESOURCE);
@@ -1229,27 +1252,20 @@ static int setup_proc_env_and_argv(orte_job_t* jdata, orte_app_context_t* app,
     }
 
     // add stdout, stderr to app
-    opal_argv_append_nosize(&argv, "1><LOG_DIR>/stdout");
-    opal_argv_append_nosize(&argv, "2><LOG_DIR>/stderr");
+    opal_argv_append_nosize(pargv, "1><LOG_DIR>/stdout");
+    opal_argv_append_nosize(pargv, "2><LOG_DIR>/stderr");
 
     // add java executor to app
-    opal_argv_prepend_nosize(&argv, vp_id_str);
-    opal_argv_prepend_nosize(&argv, job_id_str);
-    opal_argv_prepend_nosize(&argv, "com.greenplum.hamster.yarnexecutor.YarnExecutor");
-    opal_argv_prepend_nosize(&argv, "hamster-cli.jar");
-    opal_argv_prepend_nosize(&argv, "-cp");
-    opal_argv_prepend_nosize(&argv, getenv("HAMSTER_JAVA_OPT")==NULL ? "-Xmx32M -Xms8M" : getenv("HAMSTER_JAVA_OPT"));
-    opal_argv_prepend_nosize(&argv, "$JAVA_HOME/bin/java");
-
-    int tmp_idx = 0;
-    while (argv[tmp_idx]) {
-        opal_output(0, "%s  plm::yarn::setup_proc_env_and_argv: argv %d:%s",
-            ORTE_NAME_PRINT(ORTE_PROC_MY_NAME), tmp_idx, argv[tmp_idx]);
-        tmp_idx++;
-    }
+    prepend_nosize(pargv, vp_id_str);
+    prepend_nosize(pargv, job_id_str);
+    prepend_nosize(pargv, "com.pivotal.hamster.yarnexecutor.YarnExecutor");
+    prepend_nosize(pargv, "hamster-core.jar");
+    prepend_nosize(pargv, "-cp");
+    prepend_nosize(pargv, getenv("HAMSTER_JAVA_OPT")==NULL ? "-Xmx32M -Xms8M" : getenv("HAMSTER_JAVA_OPT"));
+    prepend_nosize(pargv, "$JAVA_HOME/bin/java");
 
     /* obtain app->env */
-    env = opal_environ_merge(environ, app->env);
+    *penv = opal_environ_merge(environ, app->env);
 
     if (!proc->node) {
         opal_output(0, "%s plm::yarn::setup_proc_env_and_argv: node of proc[%d] is NULL",
@@ -1263,71 +1279,70 @@ static int setup_proc_env_and_argv(orte_job_t* jdata, orte_app_context_t* app,
         return ORTE_ERROR;
     }
 
+    /* set the app_context number into the environment */
+    param = mca_base_param_environ_variable("orte","app","num");
+    asprintf(&param2, "%ld", (long)app->idx);
+    opal_setenv(param, param2, true, penv);
+    free(param);
+    free(param2);
+
     // pass the daemon's name
-    if (OPAL_SUCCESS
-            != mca_base_var_env_name("orte_local_daemon_uri", &param)) {
-        ORTE_ERROR_LOG(ORTE_ERR_OUT_OF_RESOURCE);
-        rc = ORTE_ERR_OUT_OF_RESOURCE;
-        return rc;
-    }
-    opal_setenv(param, proc->node->daemon->rml_uri, true, &env);
+    param = mca_base_param_environ_variable("orte","local_daemon","uri");
+    opal_setenv(param, proc->node->daemon->rml_uri, true, penv);
     free(param);
 
     /* pass my contact info */
-    if (OPAL_SUCCESS != mca_base_var_env_name("orte_hnp_uri", &param)) {
-        ORTE_ERROR_LOG(ORTE_ERR_OUT_OF_RESOURCE);
-        rc = ORTE_ERR_OUT_OF_RESOURCE;
-        return rc;
-    }
-    opal_setenv(param, orte_process_info.my_hnp_uri, true, &env);
+    param = mca_base_param_environ_variable("orte","hnp","uri");
+    opal_setenv(param, orte_process_info.my_hnp_uri, true, penv);
     free(param);
 
     /* pass the jobid */
-    if (OPAL_SUCCESS != mca_base_var_env_name("orte_ess_jobid", &param)) {
-        ORTE_ERROR_LOG(ORTE_ERR_OUT_OF_RESOURCE);
-        rc = ORTE_ERR_OUT_OF_RESOURCE;
-        return rc;
-    }
-    opal_setenv(param, job_id_str, true, &env);
+    param = mca_base_param_environ_variable("orte","ess","jobid");
+    opal_setenv(param, job_id_str, true, penv);
     free(param);
     free(job_id_str);
 
     /* pass the rank */
-    if (OPAL_SUCCESS != mca_base_var_env_name("orte_ess_vpid", &param)) {
-        ORTE_ERROR_LOG(ORTE_ERR_OUT_OF_RESOURCE);
-        rc = ORTE_ERR_OUT_OF_RESOURCE;
-        return rc;
-    }
-    opal_setenv(param, vp_id_str, true, &env);
+    param = mca_base_param_environ_variable("orte","ess","vpid");
+    opal_setenv(param, vp_id_str, true, penv);
     free(param);
-    opal_setenv("OMPI_COMM_WORLD_RANK", vp_id_str, true, &env);
+    opal_setenv("OMPI_COMM_WORLD_RANK", vp_id_str, true, penv);
     free(vp_id_str);  /* done with this now */
 
     /* pass local rank */
     asprintf(&value, "%lu", (unsigned long) proc->local_rank);
-    opal_setenv("OMPI_COMM_WORLD_LOCAL_RANK", value, true, &env);
+    opal_setenv("OMPI_COMM_WORLD_LOCAL_RANK", value, true, penv);
     free(value);
 
     /* pass node rank */
     asprintf(&value, "%lu", (unsigned long) proc->node_rank);
-    opal_setenv("OMPI_COMM_WORLD_NODE_RANK", value, true, &env);
+    opal_setenv("OMPI_COMM_WORLD_NODE_RANK", value, true, penv);
 
     /* set an mca param for it too */
-    if (OPAL_SUCCESS != mca_base_var_env_name("orte_ess_node_rank", &param)) {
-        ORTE_ERROR_LOG(ORTE_ERR_OUT_OF_RESOURCE);
-        rc = ORTE_ERR_OUT_OF_RESOURCE;
-        return rc;
-    }
-    opal_setenv(param, value, true, &env);
+    param = mca_base_param_environ_variable("orte","ess","node_rank");
+    opal_setenv(param, value, true, penv);
     free(param);
     free(value);
 
-    /* pass the number of nodes involved in this job */
-    if (OPAL_SUCCESS != mca_base_var_env_name("orte_num_nodes", &param)) {
-        ORTE_ERROR_LOG(ORTE_ERR_OUT_OF_RESOURCE);
-        rc = ORTE_ERR_OUT_OF_RESOURCE;
-        return rc;
+    /* pass a param telling the child what model of cpu we are on,
+     * if we know it
+     */
+    if (NULL != orte_local_cpu_type) {
+        param = mca_base_param_environ_variable("orte","cpu","type");
+        /* do not overwrite what the user may have provided */
+        opal_setenv(param, orte_local_cpu_type, false, penv);
+        free(param);
     }
+    if (NULL != orte_local_cpu_model) {
+        param = mca_base_param_environ_variable("orte","cpu","model");
+        /* do not overwrite what the user may have provided */
+        opal_setenv(param, orte_local_cpu_model, false, penv);
+        free(param);
+    }
+
+    /* pass the number of nodes involved in this job */
+    param = mca_base_param_environ_variable("orte","num","nodes");
+
     /* we have to count the number of nodes as the size of orte_node_pool
      * is only guaranteed to be equal or larger than that number - i.e.,
      * the pointer_array increases the size by a block each time, so some
@@ -1340,61 +1355,27 @@ static int setup_proc_env_and_argv(orte_job_t* jdata, orte_app_context_t* app,
         }
     }
     asprintf(&value, "%d", num_nodes);
-    opal_setenv(param, value, true, &env);
+    opal_setenv(param, value, true, penv);
     free(param);
     free(value);
 
     /* setup yield schedule */
-    if (OPAL_SUCCESS != mca_base_var_env_name("mpi_yield_when", &param)) {
-        ORTE_ERROR_LOG(ORTE_ERR_OUT_OF_RESOURCE);
-        rc = ORTE_ERR_OUT_OF_RESOURCE;
-        return rc;
-    }
-    opal_setenv(param, "0", false, &env);
+    param = mca_base_param_environ_variable("mpi", NULL, "yield_when_idle");
+    opal_setenv(param, "0", false, penv);
     free(param);
 
     /* set MPI universe envar */
-    rc = orte_ess_env_put(jdata->num_procs, proc->node->num_procs, &env);
+    orte_ess_env_put(jdata->num_procs, proc->node->num_procs, penv);
+    
     asprintf(&value, "%ld", (long) jdata->num_procs);
-    opal_setenv("OMPI_UNIVERSE_SIZE", value, true, &env);
+    opal_setenv("OMPI_UNIVERSE_SIZE", value, true, penv);
     free(value);
 
-//    /* pass collective ids for the std MPI operations */
-//    if (OPAL_SUCCESS != mca_base_var_env_name("orte_peer_modex_id", &param)) {
-//        ORTE_ERROR_LOG(ORTE_ERR_OUT_OF_RESOURCE);
-//        rc = ORTE_ERR_OUT_OF_RESOURCE;
-//        return rc;
-//    }
-//    asprintf(&value, "%d", jdata->peer_modex);
-//    opal_setenv(param, value, true, &env);
-//    free(param);
-//    free(value);
-//
-//    if (OPAL_SUCCESS
-//            != mca_base_var_env_name("orte_peer_init_barrier_id", &param)) {
-//        ORTE_ERROR_LOG(ORTE_ERR_OUT_OF_RESOURCE);
-//        rc = ORTE_ERR_OUT_OF_RESOURCE;
-//        return rc;
-//    }
-//    asprintf(&value, "%d", jdata->peer_init_barrier);
-//    opal_setenv(param, value, true, &env);
-//    free(param);
-//    free(value);
-//
-//    if (OPAL_SUCCESS
-//            != mca_base_var_env_name("orte_peer_fini_barrier_id", &param)) {
-//        ORTE_ERROR_LOG(ORTE_ERR_OUT_OF_RESOURCE);
-//        rc = ORTE_ERR_OUT_OF_RESOURCE;
-//        return rc;
-//    }
-//    asprintf(&value, "%d", jdata->peer_fini_barrier);
-//    opal_setenv(param, value, true, &env);
-
     /* finally, we will set/unset some mca param to select modules */
-    opal_unsetenv("OMPI_MCA_plm", &env);
-    opal_unsetenv("OMPI_MCA_ras", &env);
-    opal_unsetenv("OMPI_MCA_ess", &env);
-    opal_unsetenv("OMPI_MCA_errmgr", &env);
+    opal_unsetenv("OMPI_MCA_plm", penv);
+    opal_unsetenv("OMPI_MCA_ras", penv);
+    opal_unsetenv("OMPI_MCA_ess", penv);
+    opal_unsetenv("OMPI_MCA_errmgr", penv);
     return 0;
 }
 
@@ -1405,7 +1386,9 @@ static int plm_yarn_terminate_orteds(void)
 {
     int rc;
     orte_job_t *jdata;
-    
+
+    finish_app_master(false);
+
     /* tell them to die without sending a reply - we will rely on the
      * waitpid to tell us when they have exited!
      */
@@ -1430,6 +1413,11 @@ static int plm_yarn_terminate_orteds(void)
     }
     
     return rc;
+}
+
+static int plm_yarn_terminate_job(orte_jobid_t jobid) {
+    finish_app_master(0 == orte_exit_status);
+    return orte_plm_base_orted_terminate_job(jobid);
 }
 
 /**

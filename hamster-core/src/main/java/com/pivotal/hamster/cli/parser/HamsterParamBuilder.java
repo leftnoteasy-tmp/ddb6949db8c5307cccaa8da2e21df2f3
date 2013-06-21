@@ -10,6 +10,7 @@ import java.util.Map.Entry;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 import org.apache.hadoop.yarn.api.ApplicationConstants;
+import org.apache.hadoop.yarn.api.records.ContainerLaunchContext;
 
 public class HamsterParamBuilder {
     private static final Log LOG = LogFactory.getLog(HamsterParamBuilder.class);
@@ -178,7 +179,7 @@ public class HamsterParamBuilder {
       return np;
     }
     
-    public String[] getUserParam() {
+    public String[] getUserParam(ContainerLaunchContext ctx) {
       if (!mpiApp) {
         List<String> userParams = new ArrayList<String>();
         // append all user's parameters
@@ -193,6 +194,16 @@ public class HamsterParamBuilder {
       
       // add first one, it should be "mpirun"
       List<String> userParams = new ArrayList<String>();
+      userParams.add("$JAVA_HOME/bin/java");
+      userParams.add("-Xmx512M -Xms16M");
+      // userParams.add("-Xdebug -Xrunjdwp:transport=dt_socket,server=y,address=\"8111\"");
+      userParams.add("-cp");
+      if (ctx == null) {
+        userParams.add("hamster-core.jar");
+      } else {
+        userParams.add(ctx.getEnvironment().get("CLASSPATH"));
+      }
+      userParams.add("com.pivotal.hamster.appmaster.HamsterAppMaster");
       if (!valgrind) {
         userParams.add("mpirun");
       } else {
@@ -207,6 +218,9 @@ public class HamsterParamBuilder {
       mcaParams.put("ras", "yarn");
       mcaParams.put("plm", "yarn");
       mcaParams.put("odls", "yarn");
+      
+      mcaParams.put("plm_base_verbose", "5");
+      mcaParams.put("ras_base_verbose", "5");
       
       // append mca parameters
       for (Entry<String, String> e : mcaParams.entrySet()) {
@@ -231,8 +245,8 @@ public class HamsterParamBuilder {
       return mpiApp;
     }
     
-    public String getUserCli() {
-      String[] args = getUserParam();
+    public String getUserCli(ContainerLaunchContext ctx) {
+      String[] args = getUserParam(ctx);
       return convertArgsToCmd(args);
     }
     
