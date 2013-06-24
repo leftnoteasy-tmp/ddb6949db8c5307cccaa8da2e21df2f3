@@ -564,6 +564,12 @@ public class HamsterCli {
     }
   }
   
+  void setHamsterModuleMcaEnvs(Map<String, String> envs) {
+    envs.put("OMPI_MCA_plm", "yarn");
+    envs.put("OMPI_MCA_ras", "yarn");
+    envs.put("OMPI_MCA_odls", "yarn");
+  }
+  
   void setContainerCtxEnvs(ContainerLaunchContext ctx) throws IOException {
     Map<String, String> envs = new HashMap<String, String>();
     
@@ -596,6 +602,9 @@ public class HamsterCli {
 
     // add debug envs
     setHamsterDebugEnvs(envs);
+    
+    // add mca modules for selects
+    setHamsterModuleMcaEnvs(envs);
 
     // set $PATH, $LD_LIBRARY_PATH, etc.
     pathEnvar = HamsterUtils.appendEnv(pathEnvar, ompiHome + "/bin");

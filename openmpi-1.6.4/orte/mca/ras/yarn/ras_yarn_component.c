@@ -87,6 +87,17 @@ static int ras_yarn_close(void)
 
 static int orte_ras_yarn_component_query(mca_base_module_t **module, int *priority)
 {
+    char *directive;
+    
+    /* determine if we were specified */
+    directive = getenv("OMPI_MCA_ras");
+    
+    if (NULL == directive || 0 != strcmp("yarn", directive)) {
+        *priority = 0;
+        *module = NULL;
+        return ORTE_ERROR;
+    }
+
     OPAL_OUTPUT_VERBOSE((2, orte_ras_base.ras_output,
                          "%s ras:yarn: available for selection",
                          ORTE_NAME_PRINT(ORTE_PROC_MY_NAME)));

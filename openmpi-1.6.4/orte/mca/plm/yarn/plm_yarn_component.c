@@ -92,6 +92,17 @@ static int plm_yarn_open(void)
 
 static int orte_plm_yarn_component_query(mca_base_module_t **module, int *priority)
 {
+    char *directive;
+    
+    /* determine if we were specified */
+    directive = getenv("OMPI_MCA_plm");
+    
+    if (NULL == directive || 0 != strcmp("yarn", directive)) {
+        *priority = 0;
+        *module = NULL;
+        return ORTE_ERROR;
+    }
+
     *priority = 0;
                             
     OPAL_OUTPUT_VERBOSE((1, orte_plm_globals.output,
