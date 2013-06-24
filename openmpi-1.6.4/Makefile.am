@@ -24,5 +24,14 @@ include examples/Makefile.include
 
 dist-hook:
 	csh "$(top_srcdir)/config/distscript.csh" "$(top_srcdir)" "$(distdir)" "$(OMPI_VERSION)" "$(OMPI_SVN_R)"
+	
+install-exec-hook:
+	@echo "Making tarball of installation..."
+	rm -f $(prefix)/hamster2-bin.tar.gz
+	tar -cz -C $(prefix) --exclude \*.a -f hamster2-bin.tar.gz .
+	mv hamster2-bin.tar.gz $(prefix)
+
+uninstall-local:
+	rm -f $(prefix)/hamster2-bin.tar.gz
 
 ACLOCAL_AMFLAGS = -I config
