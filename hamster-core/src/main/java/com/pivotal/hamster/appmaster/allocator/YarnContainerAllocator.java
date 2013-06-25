@@ -47,6 +47,7 @@ import org.apache.hadoop.yarn.factory.providers.RecordFactoryProvider;
 import org.apache.hadoop.yarn.ipc.YarnRPC;
 import org.apache.hadoop.yarn.util.RackResolver;
 
+import com.pivotal.hamster.appmaster.clientservice.ClientService;
 import com.pivotal.hamster.appmaster.event.HamsterFailureEvent;
 import com.pivotal.hamster.appmaster.utils.HadoopRpcUtils;
 import com.pivotal.hamster.appmaster.utils.HamsterAppMasterUtils;
@@ -80,15 +81,17 @@ public class YarnContainerAllocator extends ContainerAllocator {
   Dispatcher dispatcher;
   Resource resource;
   Configuration conf;
+  ClientService clientService;
   
   // allocate can either be used by "allocate resource" or "get completed container"
   // we will not make them used at the same time
   Object allocateLock;
   int responseId;
 
-  public YarnContainerAllocator(Dispatcher dispatcher) {
+  public YarnContainerAllocator(Dispatcher dispatcher, ClientService clientService) {
     super(YarnContainerAllocator.class.getName());
     this.dispatcher = dispatcher;
+    this.clientService = clientService;
   }
 
   @Override
@@ -327,6 +330,8 @@ public class YarnContainerAllocator extends ContainerAllocator {
     try {
       RegisterApplicationMasterRequest request = recordFactory.newRecordInstance(RegisterApplicationMasterRequest.class);
       request.setApplicationAttemptId(applicationAttemptId);
+      request.setTrackingUrl(HamsterAppMasterUtils.getNormalizedLocalhost() + ":" + clientService.getHttpPort());
+      LOG.info("tracking URL = " + HamsterAppMasterUtils.getNormalizedLocalhost() + ":" + clientService.getHttpPort());
       RegisterApplicationMasterResponse response = scheduler.registerApplicationMaster(request);
       minContainerCapability = response.getMinimumResourceCapability();
       maxContainerCapability = response.getMaximumResourceCapability();

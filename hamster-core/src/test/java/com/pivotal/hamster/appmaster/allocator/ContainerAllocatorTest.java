@@ -25,6 +25,7 @@ import org.apache.hadoop.yarn.factory.providers.RecordFactoryProvider;
 import org.junit.Assert;
 import org.junit.Test;
 
+import com.pivotal.hamster.appmaster.clientserivce.MockClientService;
 import com.pivotal.hamster.appmaster.common.MockContainer;
 import com.pivotal.hamster.appmaster.ut.MockDispatcher;
 import com.pivotal.hamster.common.HamsterContainer;
@@ -104,7 +105,7 @@ public class ContainerAllocatorTest {
   
   class ContainerAllocatorUT extends YarnContainerAllocator {
     public ContainerAllocatorUT(Dispatcher dispatcher) {
-      super(dispatcher);
+      super(dispatcher, new MockClientService());
     }
 
     int containerId = 0;

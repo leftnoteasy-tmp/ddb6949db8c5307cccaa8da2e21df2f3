@@ -696,6 +696,7 @@ public class HamsterCli {
     ApplicationReport report;
     YarnApplicationState state;
     YarnApplicationState preState = YarnApplicationState.NEW;
+    String trackingUrl = null;
     
     reportRequest = recordFactory.newRecordInstance(GetApplicationReportRequest.class);
     reportRequest.setApplicationId(appId);
@@ -706,6 +707,12 @@ public class HamsterCli {
     while (true) {
       report = client.getApplicationReport(reportRequest).getApplicationReport();
       preState = state;
+      if (report.getTrackingUrl() != null && (!report.getTrackingUrl().isEmpty())) {
+        if (trackingUrl == null) {
+          trackingUrl = report.getTrackingUrl();
+          LOG.info("tracking URL is: http://" + trackingUrl);
+        }
+      }
       state = report.getYarnApplicationState();
       
       // state changed

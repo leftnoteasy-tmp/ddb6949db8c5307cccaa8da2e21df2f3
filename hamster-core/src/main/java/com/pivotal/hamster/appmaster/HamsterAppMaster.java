@@ -10,6 +10,8 @@ import org.apache.hadoop.yarn.service.CompositeService;
 
 import com.pivotal.hamster.appmaster.allocator.ContainerAllocator;
 import com.pivotal.hamster.appmaster.allocator.YarnContainerAllocator;
+import com.pivotal.hamster.appmaster.clientservice.ClientService;
+import com.pivotal.hamster.appmaster.clientservice.ClientServiceImpl;
 import com.pivotal.hamster.appmaster.event.HamsterEventHandler;
 import com.pivotal.hamster.appmaster.event.HamsterEventType;
 import com.pivotal.hamster.appmaster.hnp.DefaultHnpLauncher;
@@ -20,7 +22,6 @@ import com.pivotal.hamster.appmaster.hnp.HnpLivenessMonitor;
 import com.pivotal.hamster.appmaster.hnp.HnpService;
 import com.pivotal.hamster.appmaster.launcher.ContainerLauncher;
 import com.pivotal.hamster.appmaster.launcher.YarnContainerLauncher;
-import com.pivotal.hamster.appmaster.utils.HadoopRpcUtils;
 
 public class HamsterAppMaster extends CompositeService {
   private static final Log LOG = LogFactory.getLog(HamsterAppMaster.class);
@@ -36,6 +37,7 @@ public class HamsterAppMaster extends CompositeService {
   private HnpLauncher hnpLauncher;
   private AsyncDispatcher dispatcher;
   private HnpService hnpService;
+  private ClientService clientService;
   private String[] args;
   
   // The shutdown hook that runs when a signal is received AND during normal
@@ -70,6 +72,10 @@ public class HamsterAppMaster extends CompositeService {
     hnpLivenessMonitor = getHnpLivenessMonitor();
     addService(hnpLivenessMonitor);
     
+    // init web apps
+    clientService = getClientService();
+    addService(clientService);
+    
     // init container allocator
     containerAllocator = getContainerAllocator();
     addService(containerAllocator);
@@ -93,6 +99,10 @@ public class HamsterAppMaster extends CompositeService {
     return new DefaultHnpService(dispatcher, containerAllocator, containerLauncher, hnpLivenessMonitor);
   }
   
+  ClientService getClientService() {
+    return new ClientServiceImpl();
+  }
+  
   HnpLauncher getHnpLauncher() {
     return new DefaultHnpLauncher(dispatcher, hnpService, args);
   }
@@ -102,7 +112,7 @@ public class HamsterAppMaster extends CompositeService {
   }
   
   ContainerAllocator getContainerAllocator() {
-    return new YarnContainerAllocator(dispatcher);
+    return new YarnContainerAllocator(dispatcher, clientService);
   }
   
   ContainerLauncher getContainerLauncher() {
