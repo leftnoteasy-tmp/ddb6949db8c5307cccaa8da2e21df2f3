@@ -292,8 +292,6 @@ static void monitor_local_launch(int fd, short event, void* cbdata) {
                     }
                     if (child->state < ORTE_PROC_STATE_UNTERMINATED) {
                         child->alive = false;
-opal_output(0, "!!!! failed to start");
-ORTE_ERROR_LOG(ORTE_ERR_NOT_FOUND);
                         child->state = ORTE_PROC_STATE_FAILED_TO_START;
                         mon->detected_proc_num++;
                         new_detected_proc++;

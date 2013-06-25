@@ -126,14 +126,6 @@ int orte_hdclient_send_message_and_delete(struct pbc_wmessage* msg, enum_hamster
     pbc_wmessage_integer(send_msg, "msg_type", type, 0);
     pbc_wmessage_buffer(send_msg, &send_slice);
     
-//debug
-printf("size:%d\n", send_slice.len);
-int i;
-for (i = 0; i < send_slice.len; i++) {
-    printf("%d ", ((char*)send_slice.buffer)[i]);
-}
-printf("\n");
-fflush(NULL);
     // pack message and send
     write_endian_swap_int(orte_umbilical_socket_id, send_slice.len);
     rc = write_all(orte_umbilical_socket_id, send_slice.buffer, send_slice.len);
