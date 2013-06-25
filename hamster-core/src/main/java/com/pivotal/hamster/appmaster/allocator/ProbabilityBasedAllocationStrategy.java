@@ -174,6 +174,25 @@ public class ProbabilityBasedAllocationStrategy implements AllocationStrategy {
     for (Container c : containers) {
       releaseContainers.add(c.getId());
     }
+    
+    // remove entry in hostToId
+    String host = null;
+    for (Entry<String, Integer> entry : hostToId.entrySet()) {
+      if (entry.getValue() == hostId) {
+        if (host != null) {
+          // double check if host-id is unique
+          LOG.error("host-id is not unique, please check");
+          throw new HamsterException("host-id is not unique, please check");
+        }
+        host = entry.getKey();
+      }
+    }
+    if (host == null) {
+      LOG.error("failed to find a host with id=" + hostId);
+      throw new HamsterException("failed to find a host with id=" + hostId);
+    }
+    hostToId.remove(host);
+    
     containers.clear();
   }
   
