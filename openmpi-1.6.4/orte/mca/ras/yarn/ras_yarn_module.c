@@ -177,7 +177,7 @@ static int orte_ras_yarn_allocate_internal(int np, opal_list_t* nodes) {
         node->state = ORTE_NODE_STATE_UP;
         node->slots_inuse = 0;
         node->slots_max = 0;
-        node->slots = np;
+        node->slots = slot;
         opal_list_append(nodes, &node->super);
 
         OPAL_OUTPUT_VERBOSE((5, orte_ras_base.ras_output,
@@ -215,6 +215,9 @@ static int orte_ras_yarn_allocate(opal_list_t* nodes) {
             ORTE_NAME_PRINT(ORTE_PROC_MY_NAME));
         return ORTE_ERROR;
     }
+
+    // set managed allocation
+    orte_managed_allocation = true;
 
     // calculate all slots needed
     int slot_num = 0;

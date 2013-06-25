@@ -339,9 +339,10 @@ static int common_launch_process(orte_job_t *jdata, bool launch_daemon, int *lau
 			goto cleanup;
 		}
 
-		while (*env) {
-			pbc_wmessage_string(launch_contexts_msg, "envars", *env, strlen(*env));
-			env++;
+		char **tmp_env = env;
+		while (*tmp_env) {
+			pbc_wmessage_string(launch_contexts_msg, "envars", *tmp_env, strlen(*tmp_env));
+			tmp_env++;
 		}
 
 		char* join_argv = opal_argv_join(argv, ' ');
@@ -401,6 +402,9 @@ cleanup:
 		opal_output(0,
 				"%s plm:yarn:common_process_launch: error happened when send launch proc request to AM",
 				ORTE_NAME_PRINT(ORTE_PROC_MY_NAME));
+		if (request_msg) {
+			pbc_wmessage_delete(request_msg);	
+		}
 		return ORTE_ERROR;
 	}
 

@@ -179,7 +179,7 @@ struct pbc_rmessage* orte_hdclient_recv_message(const char* msg_type) {
     rc = read_all(orte_umbilical_socket_id, &success, 1);
     if (0 != rc) {
         opal_output(0, "read success status from socket failed");
-        return -1;
+        return NULL;
     }
     if (success == 2) {
         opal_output(0, "recved error response from AM");
@@ -193,7 +193,7 @@ struct pbc_rmessage* orte_hdclient_recv_message(const char* msg_type) {
     rc = read_all(orte_umbilical_socket_id, &slice.len, sizeof(int));
     if (0 != rc) {
         opal_output(0, "read length of umbilical socket failed.");
-        return -1;
+        return NULL;
     }
     slice.len = int_endian_swap(slice.len);
 
@@ -201,13 +201,13 @@ struct pbc_rmessage* orte_hdclient_recv_message(const char* msg_type) {
     slice.buffer = (char*)malloc(slice.len);
     if (!slice.buffer) {
         opal_output(0, "failed to allocate memory for recv message");
-        return -1;
+        return NULL;
     }
     rc = read_all(orte_umbilical_socket_id, slice.buffer, slice.len);
     if (rc != 0) {
         opal_output(0, "failed to read response message from AM");
         free(slice.buffer);
-        return -1;
+        return NULL;
     }
 
     // deserialize rmessage
@@ -215,7 +215,7 @@ struct pbc_rmessage* orte_hdclient_recv_message(const char* msg_type) {
     if (!msg) {
         opal_output(0, "error when parse rmessage, %s", pbc_error(orte_hdclient_pb_env));
         free(slice.buffer);
-        return -1;
+        return NULL;
     }
 
     return msg;
