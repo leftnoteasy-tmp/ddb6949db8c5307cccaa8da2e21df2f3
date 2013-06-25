@@ -276,6 +276,11 @@ public class YarnContainerAllocator extends ContainerAllocator {
         request.addRelease(releaseId);
       }
       
+      // log releases container id
+      for (ContainerId id : request.getReleaseList()) {
+        LOG.info("release containers to RM, container_id=" + id.getId());
+      }
+      
       AllocateResponse response = scheduler.allocate(request);
       
       // check if we need directly put releaseId to release table

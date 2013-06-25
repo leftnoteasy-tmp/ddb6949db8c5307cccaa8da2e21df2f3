@@ -316,6 +316,7 @@ public class DefaultHnpService extends HnpService {
       }
       NodeResourceProto node = NodeResourceProto.newBuilder().setHostName(host).setSlot(nSlot).build();
       builder.addNodeResources(node);
+      LOG.info("allocate for node:[" + host + "], with slot=[" + nSlot + "]");
     }
     AllocateResponseProto response = builder.build();
     
@@ -350,6 +351,9 @@ public class DefaultHnpService extends HnpService {
       // normalize request name
       String normalizedHostName = getNormalizedHost(proto.getHostName());
       List<HamsterContainer> containers = allocateResult.get(normalizedHostName);
+      
+      LOG.info("launch process in host:[" + normalizedHostName + "], process=" + name.toString());
+      
       if (null == containers) {
         LOG.error("failed to get containers associated to the host:" + normalizedHostName);
         throw new HamsterException("failed to get containers associated to the host:" + normalizedHostName);

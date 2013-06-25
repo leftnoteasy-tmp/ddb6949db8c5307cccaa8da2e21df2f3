@@ -317,18 +317,11 @@ static int common_launch_process(orte_job_t *jdata, bool launch_daemon, int *lau
 		if (getenv("HAMSTER_VERBOSE")) {
 
 			char* join_argv = opal_argv_join(argv, ' ');
-			char* join_env = opal_argv_join(env, ' ');
 
 			OPAL_OUTPUT_VERBOSE((5, orte_plm_globals.output, "%s plm:yarn:common_launch_process: launch argv=%s",
 							ORTE_NAME_PRINT(ORTE_PROC_MY_NAME), join_argv));
-			OPAL_OUTPUT_VERBOSE((5, orte_plm_globals.output, "%s plm:yarn:common_launch_process: launch env=%s",
-							ORTE_NAME_PRINT(ORTE_PROC_MY_NAME), join_env));
-
 			if (join_argv) {
 				free(join_argv);
-			}
-			if (join_env) {
-				free(join_env);
 			}
 		}
 
