@@ -233,16 +233,10 @@ static int setup_daemon_proc_env_and_argv(orte_proc_t* proc, char ***pargv,
     /* print launch commandline and env when this env is specified */
     if (getenv("HAMSTER_VERBOSE")) {
         char* join_argv = opal_argv_join(*pargv, ' ');
-        char* join_env = opal_argv_join(*penv, ' ');
         OPAL_OUTPUT_VERBOSE((5, orte_plm_globals.output, "%s plm:yarn launch_daemon argv=%s",
             ORTE_NAME_PRINT(ORTE_PROC_MY_NAME), join_argv));
-        OPAL_OUTPUT_VERBOSE((5, orte_plm_globals.output, "%s plm:yarn launch_daemon env=%s",
-            ORTE_NAME_PRINT(ORTE_PROC_MY_NAME), join_env));
         if (join_argv) {
             free(join_argv);
-        }
-        if (join_env) {
-            free(join_env);
         }
     }
     return 0;

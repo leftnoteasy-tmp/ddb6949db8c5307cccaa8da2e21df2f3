@@ -93,6 +93,8 @@ public class YarnContainerAllocator extends ContainerAllocator {
 
   @Override
   public Map<String, List<HamsterContainer>> allocate(int n) {
+    long startTime = System.currentTimeMillis();
+    
     // implement an algorithm to allocate from RM here, that will fill a Map<ProcessName, ContainerId>
     AllocationStrategy allocateStrategy = getStrategy();
     Map<String, List<HamsterContainer>> result;
@@ -100,6 +102,8 @@ public class YarnContainerAllocator extends ContainerAllocator {
     
     // set allocateFinished
     allocateFinished.getAndSet(true);
+    
+    LOG.info("STATISTIC: allocation time is :" + (System.currentTimeMillis() - startTime) / 1000.0 + " seconds");
     
     // start completed container query thread after allocation finished
     return result;
