@@ -145,7 +145,11 @@ public class ProbabilityBasedAllocationStrategy implements AllocationStrategy {
         }
         
         if ((entry.getValue() != 0) && (containerList.size() == 1)) {
-          throw new HamsterException("this shouldn't happen, all container-list with containers == 1 will be returned");
+          throw new HamsterException(
+              "this shouldn't happen, all container-list with containers == 1 will be returned, host:["
+                  + entry.getValue()
+                  + "] container count = "
+                  + containerList.size());
         }
         
         if (entry.getValue() == 0) {
@@ -211,17 +215,19 @@ public class ProbabilityBasedAllocationStrategy implements AllocationStrategy {
   
   void releaseRedundantContainers() {
     int nNeedRelease = m - n;
-    
+
     // get host id to counts, we will release host will less containers first
-    HostIdToCount[] hostIdToCounts = new HostIdToCount[hostIdToContainers.size() - 1];
+    HostIdToCount[] hostIdToCounts = new HostIdToCount[hostIdToContainers
+        .size() - 1];
     int idx = 0;
     for (Entry<Integer, List<Container>> entry : hostIdToContainers.entrySet()) {
       if (entry.getKey() != 0) {
-        hostIdToCounts[idx] = new HostIdToCount(entry.getKey(), entry.getValue().size());
+        hostIdToCounts[idx] = new HostIdToCount(entry.getKey(), entry
+            .getValue().size());
         idx++;
       }
     }
-    
+
     // sort host by number of containers;
     Arrays.sort(hostIdToCounts, new Comparator<HostIdToCount>() {
       @Override
@@ -229,33 +235,40 @@ public class ProbabilityBasedAllocationStrategy implements AllocationStrategy {
         return left.count - right.count;
       }
     });
-    
+
     for (int i = 0; i < hostIdToCounts.length; i++) {
-      if (nNeedRelease <= 0) {
-        break;
-      }
-      
       HostIdToCount tmp = hostIdToCounts[i];
       if (tmp.count <= 1) {
         returnAllContainersInHostId(tmp.hostId);
-      } else {
+        LOG.info("release all containers in host:[" + tmp.hostId
+            + "], container count = " + tmp.count);
+      } else if (nNeedRelease > 0) {
         if (nNeedRelease >= tmp.count - 1) {
           returnAllContainersInHostId(tmp.hostId);
           nNeedRelease -= (tmp.count - 1);
+          LOG.info("release all containers in host:[" + tmp.hostId
+              + "], container count = " + tmp.count);
         } else {
           returnPartialContainersInHostId(tmp.hostId, nNeedRelease);
           nNeedRelease = 0;
+          LOG.info("release some containers in host:[" + tmp.hostId
+              + "], container count = " + nNeedRelease
+              + " left-container-count=" + (tmp.count - nNeedRelease));
         }
       }
     }
-    
+
     // check if we need release container in host-0
     if (nNeedRelease > 0) {
       List<Container> containerList = hostIdToContainers.get(0);
       if ((containerList == null) || (containerList.size() <= nNeedRelease)) {
-        throw new HamsterException("try to release containers in host-0, but containers in host-0 are not enough to release");
+        throw new HamsterException(
+            "try to release containers in host-0, but containers in host-0 are not enough to release");
       }
       returnPartialContainersInHostId(0, nNeedRelease);
+      LOG.info("release some containers in host:[0], container count = "
+          + nNeedRelease + " left-container-count="
+          + (containerList.size() - nNeedRelease));
     }
   }
   
