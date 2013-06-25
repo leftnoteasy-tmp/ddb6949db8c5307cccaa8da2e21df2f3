@@ -93,10 +93,11 @@ int orte_hdclient_connect_to_am() {
         opal_output(0, "read handshake from socket failed");
         return -1;
     }
+    recv[strlen(HANDSHAKE)] = '\0';
 
     // valid handshake recved from AM
     if (0 != strcmp(HANDSHAKE, recv)) {
-        opal_output(0, "failed to validate handshake from AM");
+        opal_output(0, "failed to validate handshake from AM, read str is %s", recv);
         return -1;
     }
 
