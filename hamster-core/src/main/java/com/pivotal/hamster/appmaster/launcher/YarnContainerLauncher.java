@@ -41,6 +41,7 @@ import org.apache.hadoop.yarn.security.ContainerTokenIdentifier;
 import org.apache.hadoop.yarn.util.ProtoUtils;
 
 import com.pivotal.hamster.appmaster.utils.HadoopRpcUtils;
+import com.pivotal.hamster.appmaster.webapps.HamsterWebAppContext;
 import com.pivotal.hamster.common.HamsterConfig;
 import com.pivotal.hamster.common.HamsterException;
 import com.pivotal.hamster.common.LaunchContext;
@@ -227,8 +228,11 @@ public class YarnContainerLauncher extends ContainerLauncher {
           return results;
         }
         results[i] = future.get();
+        // add this launched process to web app
+        if (results[i]) {
+          HamsterWebAppContext.addLaunchedProcess(launchContexts[i]);
+        }
       }
-
     } catch (InterruptedException e) {
       LOG.error(e, e);
       return results;

@@ -33,6 +33,16 @@ public class HamsterAppMasterUtils {
     return containerId;
   }
   
+  public static String getLocalNMHttpAddr() {
+    if (null == System.getenv("NM_HOST")) {
+      return null;
+    }
+    if (null == System.getenv("NM_HTTP_PORT")) {
+      return null;
+    }
+    return System.getenv("NM_HOST") + ":" + System.getenv("NM_HTTP_PORT");
+  }
+  
   public static String normlizeHostName(String host) {
     try {
       InetAddress addr = InetAddress.getByName(host);
