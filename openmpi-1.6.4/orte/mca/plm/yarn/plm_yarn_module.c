@@ -681,7 +681,32 @@ static void process_state_monitor_cb(int fd, short args, void *cbdata)
 static void finish_app_master(bool succeed)
 {
     int rc;
+    int i, j;
     char *diag_msg = "finish_app_master";
+
+    // we need double check if any proc failed
+    if (succeed) {
+        for (i = 1; i < orte_job_data->size; i++) {
+            orte_job_t* job = opal_pointer_array_get_item(orte_job_data, i);
+            if (!job) {
+                continue;
+            }
+            for (j = 0; j < job->procs->size; j++) {
+                orte_proc_t* proc = opal_pointer_array_get_item(job->procs, j);
+                if (!proc) {
+                    continue;
+                }
+                // if any process is non-terminated, we will consider it's error
+                if (proc->state != ORTE_PROC_STATE_TERMINATED) {
+                    succeed = false;
+                    break;
+                }
+            }
+            if (!succeed) {
+                break;
+            }
+        }
+    }
 
     /* 1. create launch message */
     /*
@@ -1235,7 +1260,7 @@ static int plm_yarn_terminate_orteds(void)
                              ORTE_NAME_PRINT(ORTE_PROC_MY_NAME)));
         jdata = orte_get_job_data_object(ORTE_PROC_MY_NAME->jobid);
         jdata->state = ORTE_JOB_STATE_TERMINATED;
-        /* need to set the #terminated value to avoid an incorrect error msg */
+        /*  need to set the #terminated value to avoid an incorrect error msg */
         jdata->num_terminated = jdata->num_procs;
         orte_trigger_event(&orteds_exit);
     }
