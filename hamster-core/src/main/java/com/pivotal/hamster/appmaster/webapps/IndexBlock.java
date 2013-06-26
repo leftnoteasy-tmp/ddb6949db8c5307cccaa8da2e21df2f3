@@ -9,14 +9,15 @@ import org.apache.hadoop.yarn.api.records.ContainerId;
 import org.apache.hadoop.yarn.webapp.hamlet.Hamlet;
 import org.apache.hadoop.yarn.webapp.hamlet.Hamlet.TABLE;
 import org.apache.hadoop.yarn.webapp.hamlet.Hamlet.TBODY;
+import org.apache.hadoop.yarn.webapp.hamlet.Hamlet.THEAD;
 import org.apache.hadoop.yarn.webapp.view.HtmlBlock;
+import org.apache.hadoop.yarn.webapp.view.JQueryUI;
 
 import com.pivotal.hamster.appmaster.utils.HamsterAppMasterUtils;
 import com.pivotal.hamster.common.LaunchContext;
 
 public class IndexBlock extends HtmlBlock {
   private static final Log LOG = LogFactory.getLog(IndexBlock.class);
-  private String localNodeAddr;
 
   @Override
   protected void render(Block html) {
@@ -37,43 +38,43 @@ public class IndexBlock extends HtmlBlock {
       userName = "null-user-name";
     }
     
-    // make mpi proc table
-    TBODY<TABLE<Hamlet>> tbody = html.
+    THEAD<TABLE<Hamlet>> table = html.
         h2("Launched MPI procs").
-        table("#jobs").
+        table("#jobs").$style("text-align:left").
         thead().
         tr().
-        th("left", "Rank").
-        th("left", "Host").
-        th("left", "Log URL")._()._().
-        tbody();
+        th("Rank").
+        th("Host").
+        th("Container ID").
+        th("Log")._();
     
     if (mpiJobStartIdx >= 0) {
       for (int i = mpiJobStartIdx; i < launchedContexts.length; i++) {
         LaunchContext ctx = launchedContexts[i];
-        tbody.tr().
-          td(String.valueOf(ctx.getName().getVpId())).
+        table = table.tr().
+          td(String.valueOf(ctx.getName().getVpId()) + " (MPI)").
           td(ctx.getHost()).
+          td(ctx.getContainer().getId().toString()).
           td().a(String.format("http://%s/node/containerlogs/%s/" + userName,
               ctx.getContainer().getNodeHttpAddress(),
               ctx.getContainer().getId().toString()),
-              String.format("container:%s log link", ctx.getContainer().getId().toString()))._()._();
+              "Link")._()._();
       }
     }
     
-    // render mpi proc table
-    tbody._()._();
-
+    // render it
+    table._().tbody()._()._();
+    
     // make mpi daemon table
-    tbody = html.
+    table = html.
         h2("Launched Daemon procs").
-        table("#jobs").
+        table("#jobs").$style("text-align:left").
         thead().
         tr().
-        th("left", "Rank").
-        th("left", "Host").
-        th("left", "Log URL")._()._().
-        tbody();
+        th("Rank").
+        th("Host").
+        th("Container ID").
+        th("Log")._();
     
     int daemonEndIdx = mpiJobStartIdx;
     if (daemonEndIdx < 0) {
@@ -85,29 +86,31 @@ public class IndexBlock extends HtmlBlock {
     ContainerId localContainerId = HamsterAppMasterUtils.getContainerIdFromEnv();
     
     if (localNMAddr != null && localContainerId != null) {
-      tbody.tr().
-        td("HNP - 0").
-        td(System.getenv("NM_HOST")).
-        td().a(String.format("http://%s/node/containerlogs/%s/" + userName,
-            localNMAddr,
-            localContainerId.toString()),
-            String.format("container:%s log link", localContainerId.toString()))._()._();
+      table = table.tr().
+          td("0 (HNP)").
+          td(System.getenv("NM_HOST")).
+          td(localContainerId.toString()).
+          td().a(String.format("http://%s/node/containerlogs/%s/" + userName,
+              localNMAddr,
+              localContainerId.toString()),
+              "Link")._()._();
     }
     
     if (mpiJobStartIdx >= 0) {
       for (int i = 0; i < daemonEndIdx; i++) {
         LaunchContext ctx = launchedContexts[i];
-        tbody.tr().
-          td(String.valueOf(ctx.getName().getVpId())).
-          td(ctx.getHost()).
-          td().a(String.format("http://%s/node/containerlogs/%s/" + userName,
-              ctx.getContainer().getNodeHttpAddress(),
-              ctx.getContainer().getId().toString()),
-              String.format("container:%s log link", ctx.getContainer().getId().toString()))._()._();
+        table = table.tr().
+            td(String.valueOf(ctx.getName().getVpId()) + " (DMN)").
+            td(ctx.getHost()).
+            td(ctx.getContainer().getId().toString()).
+            td().a(String.format("http://%s/node/containerlogs/%s/" + userName,
+                ctx.getContainer().getNodeHttpAddress(),
+                ctx.getContainer().getId().toString()),
+                "Link")._()._();
       }
     }
     
     // make mpi daemon table
-    tbody._()._();
+    table._().tbody()._()._();
   }
 }

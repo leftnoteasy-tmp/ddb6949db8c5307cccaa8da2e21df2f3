@@ -18,4 +18,9 @@ public class IndexPage extends TwoColumnLayout {
   protected Class<? extends SubView> content() {
     return IndexBlock.class;
   }
+  
+  @Override
+  protected Class<? extends SubView> nav() {
+    return NavBlock.class;
+  }
 }
