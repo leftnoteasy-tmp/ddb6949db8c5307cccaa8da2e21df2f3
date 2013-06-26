@@ -100,7 +100,6 @@ public class DefaultHnpLauncher extends HnpLauncher {
           // wait for HNP dead
           exitCode = proc.waitFor();
         } catch (Exception e) {
-          LOG.error("exception when launch HNP process", e);
           dispatcher.getEventHandler().handle(new HamsterFailureEvent(e, "exception when launch HNP process"));
           return;
         }

@@ -34,7 +34,7 @@ public class ProbabilityBasedAllocationStrategyTest {
   
   class Allocator_testAllocation1 extends YarnContainerAllocator {
     public Allocator_testAllocation1() {
-      super(null);
+      super(null, null);
     }
 
     int round = 0;
@@ -84,7 +84,7 @@ public class ProbabilityBasedAllocationStrategyTest {
   
   class Allocator_testAllocation2 extends YarnContainerAllocator {
     public Allocator_testAllocation2() {
-      super(null);
+      super(null, null);
     }
 
     int round = 0;

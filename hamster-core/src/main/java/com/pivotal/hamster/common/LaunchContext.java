@@ -46,4 +46,8 @@ public class LaunchContext {
   public Resource getResource() {
     return resource;
   }
+  
+  public LaunchContext getCopy() {
+    return new LaunchContext(envars, args, host, container, name, resource);
+  }
 }

@@ -41,6 +41,7 @@ import org.apache.hadoop.yarn.security.ContainerTokenIdentifier;
 import org.apache.hadoop.yarn.util.ProtoUtils;
 
 import com.pivotal.hamster.appmaster.utils.HadoopRpcUtils;
+import com.pivotal.hamster.appmaster.webapps.HamsterWebAppContext;
 import com.pivotal.hamster.common.HamsterConfig;
 import com.pivotal.hamster.common.HamsterException;
 import com.pivotal.hamster.common.LaunchContext;
@@ -161,12 +162,13 @@ public class YarnContainerLauncher extends ContainerLauncher {
 
   @Override
   public synchronized boolean[] launch(LaunchContext[] launchContexts) {
+    long startTime = System.currentTimeMillis();
+    
     if (null == launchContexts) {
       return null;
     }
 
-    //ExecutorService executor = Executors.newFixedThreadPool(1);
-    ExecutorService executor = Executors.newSingleThreadExecutor();
+    ExecutorService executor = Executors.newFixedThreadPool(10);
 
     // result
     boolean[] results = new boolean[launchContexts.length];
@@ -226,8 +228,11 @@ public class YarnContainerLauncher extends ContainerLauncher {
           return results;
         }
         results[i] = future.get();
+        // add this launched process to web app
+        if (results[i]) {
+          HamsterWebAppContext.addLaunchedProcess(launchContexts[i]);
+        }
       }
-
     } catch (InterruptedException e) {
       LOG.error(e, e);
       return results;
@@ -235,6 +240,8 @@ public class YarnContainerLauncher extends ContainerLauncher {
       LOG.error(e, e);
       return results;
     }
+    
+    LOG.info("STATISTIC: launch time is :" + (System.currentTimeMillis() - startTime) / 1000.0 + " seconds");
 
     return results;
   }

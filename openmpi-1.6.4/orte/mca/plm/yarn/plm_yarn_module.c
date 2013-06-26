@@ -233,16 +233,10 @@ static int setup_daemon_proc_env_and_argv(orte_proc_t* proc, char ***pargv,
     /* print launch commandline and env when this env is specified */
     if (getenv("HAMSTER_VERBOSE")) {
         char* join_argv = opal_argv_join(*pargv, ' ');
-        char* join_env = opal_argv_join(*penv, ' ');
         OPAL_OUTPUT_VERBOSE((5, orte_plm_globals.output, "%s plm:yarn launch_daemon argv=%s",
             ORTE_NAME_PRINT(ORTE_PROC_MY_NAME), join_argv));
-        OPAL_OUTPUT_VERBOSE((5, orte_plm_globals.output, "%s plm:yarn launch_daemon env=%s",
-            ORTE_NAME_PRINT(ORTE_PROC_MY_NAME), join_env));
         if (join_argv) {
             free(join_argv);
-        }
-        if (join_env) {
-            free(join_env);
         }
     }
     return 0;
@@ -317,18 +311,11 @@ static int common_launch_process(orte_job_t *jdata, bool launch_daemon, int *lau
 		if (getenv("HAMSTER_VERBOSE")) {
 
 			char* join_argv = opal_argv_join(argv, ' ');
-			char* join_env = opal_argv_join(env, ' ');
 
 			OPAL_OUTPUT_VERBOSE((5, orte_plm_globals.output, "%s plm:yarn:common_launch_process: launch argv=%s",
 							ORTE_NAME_PRINT(ORTE_PROC_MY_NAME), join_argv));
-			OPAL_OUTPUT_VERBOSE((5, orte_plm_globals.output, "%s plm:yarn:common_launch_process: launch env=%s",
-							ORTE_NAME_PRINT(ORTE_PROC_MY_NAME), join_env));
-
 			if (join_argv) {
 				free(join_argv);
-			}
-			if (join_env) {
-				free(join_env);
 			}
 		}
 
@@ -346,9 +333,10 @@ static int common_launch_process(orte_job_t *jdata, bool launch_daemon, int *lau
 			goto cleanup;
 		}
 
-		while (*env) {
-			pbc_wmessage_string(launch_contexts_msg, "envars", *env, strlen(*env));
-			env++;
+		char **tmp_env = env;
+		while (*tmp_env) {
+			pbc_wmessage_string(launch_contexts_msg, "envars", *tmp_env, strlen(*tmp_env));
+			tmp_env++;
 		}
 
 		char* join_argv = opal_argv_join(argv, ' ');
@@ -408,6 +396,9 @@ cleanup:
 		opal_output(0,
 				"%s plm:yarn:common_process_launch: error happened when send launch proc request to AM",
 				ORTE_NAME_PRINT(ORTE_PROC_MY_NAME));
+		if (request_msg) {
+			pbc_wmessage_delete(request_msg);	
+		}
 		return ORTE_ERROR;
 	}
 
@@ -690,7 +681,32 @@ static void process_state_monitor_cb(int fd, short args, void *cbdata)
 static void finish_app_master(bool succeed)
 {
     int rc;
+    int i, j;
     char *diag_msg = "finish_app_master";
+
+    // we need double check if any proc failed
+    if (succeed) {
+        for (i = 1; i < orte_job_data->size; i++) {
+            orte_job_t* job = opal_pointer_array_get_item(orte_job_data, i);
+            if (!job) {
+                continue;
+            }
+            for (j = 0; j < job->procs->size; j++) {
+                orte_proc_t* proc = opal_pointer_array_get_item(job->procs, j);
+                if (!proc) {
+                    continue;
+                }
+                // if any process is non-terminated, we will consider it's error
+                if (proc->state != ORTE_PROC_STATE_TERMINATED) {
+                    succeed = false;
+                    break;
+                }
+            }
+            if (!succeed) {
+                break;
+            }
+        }
+    }
 
     /* 1. create launch message */
     /*
@@ -1244,7 +1260,7 @@ static int plm_yarn_terminate_orteds(void)
                              ORTE_NAME_PRINT(ORTE_PROC_MY_NAME)));
         jdata = orte_get_job_data_object(ORTE_PROC_MY_NAME->jobid);
         jdata->state = ORTE_JOB_STATE_TERMINATED;
-        /* need to set the #terminated value to avoid an incorrect error msg */
+        /*  need to set the #terminated value to avoid an incorrect error msg */
         jdata->num_terminated = jdata->num_procs;
         orte_trigger_event(&orteds_exit);
     }

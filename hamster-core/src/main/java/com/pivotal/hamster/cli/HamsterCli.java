@@ -564,6 +564,12 @@ public class HamsterCli {
     }
   }
   
+  void setHamsterModuleMcaEnvs(Map<String, String> envs) {
+    envs.put("OMPI_MCA_plm", "yarn");
+    envs.put("OMPI_MCA_ras", "yarn");
+    envs.put("OMPI_MCA_odls", "yarn");
+  }
+  
   void setContainerCtxEnvs(ContainerLaunchContext ctx) throws IOException {
     Map<String, String> envs = new HashMap<String, String>();
     
@@ -596,6 +602,9 @@ public class HamsterCli {
 
     // add debug envs
     setHamsterDebugEnvs(envs);
+    
+    // add mca modules for selects
+    setHamsterModuleMcaEnvs(envs);
 
     // set $PATH, $LD_LIBRARY_PATH, etc.
     pathEnvar = HamsterUtils.appendEnv(pathEnvar, ompiHome + "/bin");
@@ -687,6 +696,7 @@ public class HamsterCli {
     ApplicationReport report;
     YarnApplicationState state;
     YarnApplicationState preState = YarnApplicationState.NEW;
+    String trackingUrl = null;
     
     reportRequest = recordFactory.newRecordInstance(GetApplicationReportRequest.class);
     reportRequest.setApplicationId(appId);
@@ -697,6 +707,12 @@ public class HamsterCli {
     while (true) {
       report = client.getApplicationReport(reportRequest).getApplicationReport();
       preState = state;
+      if (report.getTrackingUrl() != null && (!report.getTrackingUrl().isEmpty())) {
+        if (trackingUrl == null) {
+          trackingUrl = report.getTrackingUrl();
+          LOG.info("tracking URL is: http://" + trackingUrl);
+        }
+      }
       state = report.getYarnApplicationState();
       
       // state changed
