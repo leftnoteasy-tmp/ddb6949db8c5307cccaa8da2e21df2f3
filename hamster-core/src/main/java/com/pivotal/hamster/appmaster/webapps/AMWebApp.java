@@ -23,7 +23,7 @@ public class AMWebApp extends WebApp {
    */
   public static void main(String[] args) {
     WebApp wa = null;
-    wa = WebApps.$for("mapreduce", null, null, null).with(new Configuration())
+    wa = WebApps.$for("yarn", null, null, null).with(new Configuration())
         .start(new AMWebApp());
     LOG.info("web page located at: http://localhost:" + wa.port());
     wa.joinThread();
