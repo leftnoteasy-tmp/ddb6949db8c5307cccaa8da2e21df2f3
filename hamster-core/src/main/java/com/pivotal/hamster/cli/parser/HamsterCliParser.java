@@ -5,10 +5,13 @@ import java.util.ArrayList;
 import java.util.List;
 
 import org.apache.commons.lang.StringUtils;
+import org.apache.commons.logging.Log;
+import org.apache.commons.logging.LogFactory;
 
 import com.pivotal.hamster.cli.utils.HamsterUtils;
 
 public class HamsterCliParser implements CliParser {
+  private static final Log LOG = LogFactory.getLog(HamsterCliParser.class);
 
   public String[] parse(String[] args, HamsterParamBuilder builder)
       throws IOException {
@@ -73,7 +76,12 @@ public class HamsterCliParser implements CliParser {
 				}
 
 				if (args[offset] != null && !args[offset].isEmpty()) {
-					builder.setHamsterMemory(args[offset]);
+				  int mem = Integer.valueOf(args[offset]);
+				  if (mem < 64) {
+				    mem = 64;
+				    LOG.warn("user specified mem < 64M, we will use 64M instead");
+				  }
+					builder.setHamsterMemory(mem);
 				}
 			} else if (StringUtils.equals(args[offset], "--hamster-cpu")) {
 				offset++;
@@ -82,7 +90,12 @@ public class HamsterCliParser implements CliParser {
 				}
 
 				if (args[offset] != null && !args[offset].isEmpty()) {
-					builder.setHamsterCPU(args[offset]);
+				  int cpu = Integer.valueOf(args[offset]);
+				  if (cpu < 0) {
+				    cpu = 0;
+				    LOG.warn("user specified cpu < 0, we will use 0 instead");
+				  }
+					builder.setHamsterCPU(cpu);
 				}
       } else {
         output.add(args[offset]);

@@ -1,40 +1,38 @@
 package com.pivotal.hamster.common;
 
 public interface HamsterConfig {
-  public final String HAMSTER_HOME_ENV_KEY = "HAMSTER_CORE_HOME";
-  public final String APP_ID_ENV_KEY = "APP_ID_ENV";
-  public final String CLUSTER_TIMESTAMP_ENV_KEY = "CLUSTER_TIMESTAMP_ENV";
-  public final String TALKBACK_HOST = "TALKBACK_HOST";
-  public final String TALKBACK_PORT = "TALKBACK_PORT";
-  
-  public final String PB_DIR_ENV_KEY = "YARN_PB_DIR";
-  public final String YARN_VERSION_ENV_KEY = "YARN_VERSION";
-  
-  public final String PID_ROOT_DIR_PROPERTY_KEY = "com.greenplum.hamster.pid.root";
-  public final String DEFAULT_PID_ROOT_DIR = "/tmp/hamster-pid";
-  
-  /* user can add some envs that help debug (like make a high verbose level, etc.) 
-   * split by ";", e.g ENV1=xx;ENV2=yy; (no additional space)
-   */
-  public final String PROPERTY_DEBUG_ENVS_KEY = "com.greenplum.hamster.debug.envs";
-  
-  /* RM host and port for AM */
-  public final String YARN_RM_SCHEDULER_HOSTNAME_ENV_KEY = "YARN_RM_SCHEDULER_HOSTNAME";
-  public final String YARN_RM_SCHEDULER_PORT_ENV_KEY = "YARN_RM_SCHEDULER_PORT";
+  public static final String HAMSTER_CONFIG_PREFIX = "com.pivotal.hamster.";
   
   /* Hamster Properties */
   /* Home of hamster */
-  public final String OMPI_HOME_PROPERTY_KEY = "com.greenplum.ompi.home";
-  public final String OMPI_LOCAL_TARBALL_PATH_KEY = "com.greenplum.ompi.tarball.path";
+  public final String OMPI_HOME_PROPERTY_KEY = HAMSTER_CONFIG_PREFIX + "ompi.home";
+  public final String OMPI_LOCAL_TARBALL_PATH_KEY = HAMSTER_CONFIG_PREFIX + "ompi.tarball.path";
   
   /* Do we pre-installed hamster in nodes in YARN cluster? 
    * by default, we will consider all nodes have hamster installed in hamster.home
    */
-  public final String OMPI_PREINSTALL_PROPERTY_KEY = "com.greenplum.ompi.preinstall"; 
+  public final String OMPI_PREINSTALL_PROPERTY_KEY = HAMSTER_CONFIG_PREFIX + "ompi.preinstall"; 
   public final boolean OMPI_PREINSTALL_DEFAULT_VALUE = false;
     
-  public final String DEFAULT_LOCALRESOURCE_SERIALIZED_FILENAME = "hamster_localresource_pb";
-  public final String HAMSTER_ENABLED_LOGKEYS_KEY = "com.greenplum.hamster.enabled.logkeys";
+  public final String HAMSTER_ENABLED_LOGKEYS_KEY = HAMSTER_CONFIG_PREFIX + "enabled.logkeys";
+  
+  /**
+   * how many times that user will wait for log aggregation finished (in ms)
+   */
+  public final String HAMSTER_LOG_AGGREGATION_WAIT_TIME = HAMSTER_CONFIG_PREFIX + "log.waittime";
+  public final int DEFAULT_HAMSTER_LOG_WAIT_TIME = 5000;
+    
+  /* hnp expire time */
+  public static final String HAMSTER_HNP_LIVENESS_EXPIRE_TIME = HAMSTER_CONFIG_PREFIX + "hnp.liveness.expiry-internal-ms";
+  public static final int DEFAULT_HAMSTER_HNP_LIVENESS_EXPIRE_TIME = 60 * 1000 * 10; // 10 min 
+  
+  /* hnp pull interval */
+  public static final String HAMSTER_ALLOCATOR_PULL_INTERVAL_TIME = HAMSTER_CONFIG_PREFIX + "pull.rm-interval-ms";
+  public static final int DEFAULT_HAMSTER_ALLOCATOR_PULL_INTERVAL_TIME = 5000; // 5 sec
+  
+  /* $HOME env of hamster */
+  public final String HAMSTER_HOME_ENV_KEY = "HAMSTER_CORE_HOME";   
+  public final String DEFAULT_PID_ROOT_DIR = "/tmp/hamster-pid";
   
   /**
    * default un-tar dir in NM for AM & launched processes when user specified *not* pre-install
@@ -45,28 +43,20 @@ public interface HamsterConfig {
   
   public final String YARN_PB_FILE_ENV_KEY = "YARN_PB_FILE";
   
-  /**
-   * how many times that user will wait for log aggregation finished (in ms)
-   */
-  public final String HAMSTER_LOG_AGGREGATION_WAIT_TIME = "com.greenplum.hamster.log.waittime";
-  public final int DEFAULT_HAMSTER_LOG_WAIT_TIME = 5000;
-      
-  public static final String HAMSTER_CONFIG_PREFIX = "com.pivotal.hamster.";
-  
-  /* hnp expire time */
-  public static final String HAMSTER_HNP_LIVENESS_EXPIRE_TIME = HAMSTER_CONFIG_PREFIX + "hnp.liveness.expiry-internal-ms";
-  public static final int DEFAULT_HAMSTER_HNP_LIVENESS_EXPIRE_TIME = 60 * 1000 * 10; // 10 min 
-  
-  /* hnp pull interval */
-  public static final String HAMSTER_ALLOCATOR_PULL_INTERVAL_TIME = HAMSTER_CONFIG_PREFIX + "pull.rm-interval-ms";
-  public static final int DEFAULT_HAMSTER_ALLOCATOR_PULL_INTERVAL_TIME = 5000; // 5 sec
-  
-  /* file name for serialized pb file */
-  public static final String HAMSTER_PB_FILE = "hamster_localresource_pb";
+  /* file name for serialized pb file */  
+  public static final String DEFAULT_LOCALRESOURCE_SERIALIZED_FILENAME = "hamster_localresource_pb";
   
   /* umbilical port for HNP connect AM */
   public static final String AM_UMBILICAL_PORT_ENV_KEY = "AM_UMBILICAL_PORT";
   
-  /* default value of how many proc in one node when we don't have maximum resource */
+  /* envs for resource specified when launching containers */
+  public static final String HAMSTER_MEM_ENV_KEY = "HAMSTER_MEM";
+  public static final String HAMSTER_CPU_ENV_KEY = "HAMSTER_CPU";
+  public static final int DEFAULT_HAMSTER_MEM = 1024;
+  public static final int DEFAULT_HAMSTER_CPU = 1;
+  //64M is minimum memory can be specified
+  public static final int MINIMUM_HAMSTER_MEM = 64; 
+  
+  /* default value of how many proc in one node when we don't have enough resource */
   public static final int DEFAULT_N_PROC_IN_ONE_NODE = 16;
 }
