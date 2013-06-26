@@ -81,14 +81,6 @@ public class HamsterParamBuilder {
         LOG.error("you should specify a number-mpi-processes >= 0 in this job (by {-c or -n or --n or -np}.");
         throw new IOException("you should specify a number-mpi-processes >= 0 in this job (by {-c or -n or --n or -np}.");
       }
-      
-      // check if multiple program submitted
-      for (String arg : args) {
-        if (arg.compareTo(":") == 0) {
-          LOG.error("we note that you are trying to use \":\" to submit multiple mpi programs, which is not supported now, you can only submit one mpi program at each time");
-          throw new IOException("we note that you are trying to use \":\" to submit multiple mpi programs, which is not supported now, you can only submit one mpi program at each time");
-        }
-      }
     }
 
     public String[] parse(String[] args) throws IOException {
