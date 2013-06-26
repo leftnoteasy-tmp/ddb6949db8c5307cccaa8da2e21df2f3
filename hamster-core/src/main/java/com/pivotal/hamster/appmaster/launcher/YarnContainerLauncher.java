@@ -249,7 +249,7 @@ public class YarnContainerLauncher extends ContainerLauncher {
   static Map<String, LocalResource> loadLocalResources() throws IOException {
     Map<String, LocalResource> resources = new HashMap<String, LocalResource>();
     
-    File file = new File(HamsterConfig.HAMSTER_PB_FILE);
+    File file = new File(HamsterConfig.DEFAULT_LOCALRESOURCE_SERIALIZED_FILENAME);
     if ((!file.exists()) || (file.isDirectory())) {
       throw new IOException("cannot find a proper file for PB, fil should exist:" + file.getAbsolutePath());
     }

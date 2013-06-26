@@ -52,7 +52,7 @@ public class IndexBlock extends HtmlBlock {
       for (int i = mpiJobStartIdx; i < launchedContexts.length; i++) {
         LaunchContext ctx = launchedContexts[i];
         table = table.tr().
-          td(String.valueOf(ctx.getName().getVpId()) + " (MPI)").
+          td(String.format("%-4d (MPI)", ctx.getName().getVpId()).replace(' ', '_')).
           td(ctx.getHost()).
           td(ctx.getContainer().getId().toString()).
           td().a(String.format("http://%s/node/containerlogs/%s/" + userName,
@@ -87,7 +87,7 @@ public class IndexBlock extends HtmlBlock {
     
     if (localNMAddr != null && localContainerId != null) {
       table = table.tr().
-          td("0 (HNP)").
+          td(String.format("%-4d (HNP)", 0).replace(' ', '_')).
           td(System.getenv("NM_HOST")).
           td(localContainerId.toString()).
           td().a(String.format("http://%s/node/containerlogs/%s/" + userName,
@@ -100,7 +100,7 @@ public class IndexBlock extends HtmlBlock {
       for (int i = 0; i < daemonEndIdx; i++) {
         LaunchContext ctx = launchedContexts[i];
         table = table.tr().
-            td(String.valueOf(ctx.getName().getVpId()) + " (DMN)").
+            td(String.format("%-4d (DMN)", ctx.getName().getVpId()).replace(' ', '_')).
             td(ctx.getHost()).
             td(ctx.getContainer().getId().toString()).
             td().a(String.format("http://%s/node/containerlogs/%s/" + userName,

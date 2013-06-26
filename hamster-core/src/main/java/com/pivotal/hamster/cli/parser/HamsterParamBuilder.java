@@ -43,8 +43,8 @@ public class HamsterParamBuilder {
     boolean verbose;
     // use valgrind to debug mpirun
     boolean valgrind;
-    private String hamsterMemory = null;
-    private String hamsterCPU = null;
+    private int hamsterMemory = -1;
+    private int hamsterCPU = -1;
     
     public HamsterParamBuilder() {
       mcaParams = new HashMap<String, String>();
@@ -80,14 +80,6 @@ public class HamsterParamBuilder {
       if (np <= 0) {
         LOG.error("you should specify a number-mpi-processes >= 0 in this job (by {-c or -n or --n or -np}.");
         throw new IOException("you should specify a number-mpi-processes >= 0 in this job (by {-c or -n or --n or -np}.");
-      }
-      
-      // check if multiple program submitted
-      for (String arg : args) {
-        if (arg.compareTo(":") == 0) {
-          LOG.error("we note that you are trying to use \":\" to submit multiple mpi programs, which is not supported now, you can only submit one mpi program at each time");
-          throw new IOException("we note that you are trying to use \":\" to submit multiple mpi programs, which is not supported now, you can only submit one mpi program at each time");
-        }
       }
     }
 
@@ -195,7 +187,21 @@ public class HamsterParamBuilder {
       // add first one, it should be "mpirun"
       List<String> userParams = new ArrayList<String>();
       userParams.add("$JAVA_HOME/bin/java");
-      userParams.add("-Xmx512M -Xms16M");
+      
+      /*
+       * we need to specify JVM param for running AM, because we will do a "fork"
+       * in AM, so we have to use at most 1/2 mem of total, but luckily, it should
+       * be enough for us. :)
+       */
+      int xmx = 512;
+      int xms = 16;
+      if (this.hamsterMemory > 0) {
+        // hard code specified memory > 64M, because it will be problematic when
+        // we have memory less than 32M
+        xmx = this.hamsterMemory / 2;
+      }
+      userParams.add(String.format("-Xmx%dM -Xms%dM", xmx, xms));
+      
       // userParams.add("-Xdebug -Xrunjdwp:transport=dt_socket,server=y,address=\"8111\"");
       userParams.add("-cp");
       if (ctx == null) {
@@ -257,19 +263,20 @@ public class HamsterParamBuilder {
       return sb.toString();
     }
     
-    public void setHamsterMemory(String mem) {
+    public void setHamsterMemory(int mem) {
     	this.hamsterMemory = mem;
     }
     
-    public String getHamsterMemory() {
+    public int getHamsterMemory() {
     	return this.hamsterMemory;
     }
     
-    public void setHamsterCPU(String cpu) {
+    public void setHamsterCPU(int cpu) {
     	this.hamsterCPU = cpu;
     } 
     
-    public String getHamsterCPU() {
+    public int getHamsterCPU() {
     	return this.hamsterCPU;
     }
 }
+ 

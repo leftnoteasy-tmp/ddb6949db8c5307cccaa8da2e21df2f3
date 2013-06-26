@@ -470,14 +470,23 @@ public class HamsterCli {
   
   void setContainerCtxResource(ContainerLaunchContext ctx) {
     Resource resource = recordFactory.newRecordInstance(Resource.class);
-    String mem = paramBuilder.getHamsterMemory();
+    int mem = paramBuilder.getHamsterMemory();
     
     // we will use user specified memory to mpirun, by default, we will use 1024M
-    if (mem != null && !mem.isEmpty()) {
-      resource.setMemory(Integer.parseInt(mem));
+    if (mem >= 0) {
+      resource.setMemory(mem);
     } else {
-      resource.setMemory(1024);
+      resource.setMemory(HamsterConfig.DEFAULT_HAMSTER_MEM);
     }
+    
+    // set virtual cores, by default we will use 1 core
+    int cpu = paramBuilder.getHamsterCPU();
+    if (cpu >= 0) {
+      resource.setVirtualCores(cpu);
+    } else {
+      resource.setVirtualCores(HamsterConfig.DEFAULT_HAMSTER_CPU);
+    }
+    
     ctx.setResource(resource);
   }
   
@@ -516,25 +525,20 @@ public class HamsterCli {
   
   private void setHamsterDebugEnvs(Map<String, String> envs) {
     if (paramBuilder.isVerbose()) {
-      String debugEnv = conf.get(HamsterConfig.PROPERTY_DEBUG_ENVS_KEY);
-      if (null == debugEnv) {
-        // add default debug env 
-        envs.put("OMPI_MCA_state_base_verbose", "5");
-        envs.put("OMPI_MCA_plm_base_verbose", "5");
-        envs.put("OMPI_MCA_rmaps_base_verbose", "5");
-        envs.put("OMPI_MCA_dfs_base_verbose", "5");
-        envs.put("OMPI_MCA_ess_base_verbose", "5");
-        envs.put("OMPI_MCA_routed_base_verbose", "5");
-        envs.put("OMPI_MCA_odls_base_verbose", "5");
-        envs.put("OMPI_MCA_ras_base_verbose", "5");
-        envs.put("OMPI_MCA_rml_base_verbose", "5");
-        envs.put("OMPI_MCA_grpcomm_base_verbose", "5");
-        envs.put("OMPI_MCA_rmaps_base_display_map", "1");
-        envs.put("OMPI_MCA_errmgr_base_verbose", "5");
-        envs.put("OMPI_MCA_nidmap_verbose", "10");
-      } else {
-        // read from debugEnv, and add them to envs
-      }
+      // add default debug env
+      envs.put("OMPI_MCA_state_base_verbose", "5");
+      envs.put("OMPI_MCA_plm_base_verbose", "5");
+      envs.put("OMPI_MCA_rmaps_base_verbose", "5");
+      envs.put("OMPI_MCA_dfs_base_verbose", "5");
+      envs.put("OMPI_MCA_ess_base_verbose", "5");
+      envs.put("OMPI_MCA_routed_base_verbose", "5");
+      envs.put("OMPI_MCA_odls_base_verbose", "5");
+      envs.put("OMPI_MCA_ras_base_verbose", "5");
+      envs.put("OMPI_MCA_rml_base_verbose", "5");
+      envs.put("OMPI_MCA_grpcomm_base_verbose", "5");
+      envs.put("OMPI_MCA_rmaps_base_display_map", "1");
+      envs.put("OMPI_MCA_errmgr_base_verbose", "5");
+      envs.put("OMPI_MCA_nidmap_verbose", "10");
     }
   }
   
@@ -572,28 +576,11 @@ public class HamsterCli {
   
   void setContainerCtxEnvs(ContainerLaunchContext ctx) throws IOException {
     Map<String, String> envs = new HashMap<String, String>();
-    
-    // app-id
-    envs.put(HamsterConfig.APP_ID_ENV_KEY,
-        String.valueOf(appId.getId())); 
-    
-    // cluster-id
-    envs.put(HamsterConfig.CLUSTER_TIMESTAMP_ENV_KEY, 
-        String.valueOf(appId.getClusterTimestamp()));
    
     // put hamster home
     if (ompiHome != null) {
       envs.put(HamsterConfig.HAMSTER_HOME_ENV_KEY, ompiHome);
     }
-        
-    // rm host
-    String rmSchedulerAddr = conf.get(
-        YarnConfiguration.RM_SCHEDULER_ADDRESS, 
-        YarnConfiguration.DEFAULT_RM_SCHEDULER_ADDRESS);
-    String schedulerHostname = rmSchedulerAddr.substring(0, rmSchedulerAddr.indexOf(':'));
-    String schedulerPort = rmSchedulerAddr.substring(rmSchedulerAddr.indexOf(':') + 1);
-    envs.put(HamsterConfig.YARN_RM_SCHEDULER_HOSTNAME_ENV_KEY, schedulerHostname);
-    envs.put(HamsterConfig.YARN_RM_SCHEDULER_PORT_ENV_KEY, schedulerPort);
     
     // set path & ld_library_path & dyld_library_path, etc
     String pathEnvar = "";
@@ -643,14 +630,14 @@ public class HamsterCli {
       }
     }
     
-    String mem = paramBuilder.getHamsterMemory();
-    if (mem != null && !mem.isEmpty()) {
-      envs.put("HAMSTER_MEM", mem);
+    int mem = paramBuilder.getHamsterMemory();
+    if (mem >= 0) {
+      envs.put(HamsterConfig.HAMSTER_MEM_ENV_KEY, String.valueOf(mem));
     }
     
-    String cpu = paramBuilder.getHamsterCPU();
-    if (cpu != null && !cpu.isEmpty()) {
-      envs.put("HAMSTER_CPU", cpu);
+    int cpu = paramBuilder.getHamsterCPU();
+    if (cpu >= 0) {
+      envs.put(HamsterConfig.HAMSTER_CPU_ENV_KEY, String.valueOf(cpu));
     }
     
     // set pb file env 

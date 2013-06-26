@@ -27,7 +27,7 @@ public class ClientServiceImpl extends ClientService{
   public void start() {
     // start web app
     try {
-      wa = WebApps.$for("mapreduce", null, null, null).with(conf)
+      wa = WebApps.$for("yarn", null, null, null).with(conf)
           .start(new AMWebApp());
     } catch (Exception e) {
       LOG.error("OOPs! failed to start web app", e);

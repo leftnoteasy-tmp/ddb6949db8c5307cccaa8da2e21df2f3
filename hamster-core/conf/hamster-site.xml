@@ -2,7 +2,7 @@
 
 <configuration>
   <property>
-    <name>com.greenplum.hamster.preinstall</name>
+    <name>com.pivotal.hamster.ompi.preinstall</name>
     <value>false</value>
     <description>
       whether Hamster has been pre-installed in YARN
@@ -20,7 +20,7 @@
   </property>
 
   <property>
-    <name>com.greenplum.hamster.home</name>
+    <name>com.pivotal.hamster.ompi.home</name>
     <value>/path/of/Hamster/pre-installed</value>
     <description>
       the dir path of Hamster which has been
@@ -31,7 +31,7 @@
   </property>
 
   <property>
-    <name>com.greenplum.hamster.tarball.path</name>
+    <name>com.pivotal.hamster.ompi.tarball.path</name>
     <value>/local-path/of/Hamster/tarball</value>
     <description>
       the local directory of hamster tarball, e.g.,
@@ -43,12 +43,11 @@
   </property>
 
   <property>
-    <name>com.greenplum.hamster.enabled.logkeys</name>
+    <name>com.pivotal.hamster.enabled.logkeys</name>
     <value></value>
     <description>
       which log file will be show to user after a job
-      is
-      finished, split by "," e.g. "stdout",
+      is finished, split by "," e.g. "stdout",
       "stdout,stderr", "stderr,syslog". If you leave
       it blank, we will use default strategy
       print
@@ -57,20 +56,11 @@
   </property>
 
   <property>
-    <name>com.greenplum.hamster.yarn.version</name>
-    <value>2.0.2-alpha</value>
-    <description>
-      version of hadoop in the cluster; if not set,
-      2.0.3-alpha will be set as the default value.
-    </description>
-  </property>
-
-  <property>
-    <name>com.greenplum.hamster.hdfs.dir</name>
+    <name>com.pivotal.hamster.hdfs.dir</name>
     <value>hamster</value>
     <description>
       the default dir in HDFS for Hamster job to
-      upload files.
+      upload files. by default, we will put it in hdfs:user-home/hamster
     </description>
   </property>
 </configuration>

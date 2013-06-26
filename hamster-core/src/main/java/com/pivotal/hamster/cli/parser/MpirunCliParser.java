@@ -25,6 +25,7 @@ public class MpirunCliParser implements CliParser {
         
         // if we already found a -np #, we will skip followed params
         if (npFound) {
+          offset++;
           continue;
         }
         
