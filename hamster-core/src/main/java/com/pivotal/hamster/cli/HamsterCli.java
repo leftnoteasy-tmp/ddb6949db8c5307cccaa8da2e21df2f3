@@ -602,6 +602,11 @@ public class HamsterCli {
     ldlibEnvar = HamsterUtils.appendEnv(ldlibEnvar, "./");
     dyldlibEnvar = new String(ldlibEnvar); // dyldlibEnvar should be a copied
                                            // value of ldlib envar
+    
+    // set OPAL_PREFIX if preinstall is false
+    if (!preInstallOmpiBinary) {
+      envs.put("OPAL_PREFIX", "./" + HamsterConfig.DEFAULT_OMPI_INSTALL_DIR);
+    }
 
     // append system envs to path/library
     pathEnvar = HamsterUtils.appendEnv(pathEnvar,
