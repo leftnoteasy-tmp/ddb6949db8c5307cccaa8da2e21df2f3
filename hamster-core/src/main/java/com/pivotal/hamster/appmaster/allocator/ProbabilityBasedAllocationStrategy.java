@@ -28,7 +28,7 @@ import com.pivotal.hamster.common.HamsterContainer;
 import com.pivotal.hamster.common.HamsterException;
 
 public class ProbabilityBasedAllocationStrategy implements AllocationStrategy {  
-  private static final Log LOG = LogFactory.getLog(YarnContainerAllocator.class);
+  private static final Log LOG = LogFactory.getLog(ProbabilityBasedAllocationStrategy.class);
 
   static final String ANY = "*";
   static final int DEFAULT_PRIORITY = 20;
@@ -324,10 +324,7 @@ public class ProbabilityBasedAllocationStrategy implements AllocationStrategy {
     if (!resourceRequests.containsKey(ANY)) {
       resourceRequests.put(ANY, new ArrayList<Integer>());
     }
-    resourceRequests.get(ANY).add(nExpandHosts);
-    
-    // ANY ask number
-    resourceRequests.get(ANY).add(x);
+    resourceRequests.get(ANY).add(nExpandHosts + x);
     
     // calculate prob array
     HostIdToProb[] p = new HostIdToProb[nHosts];
@@ -408,6 +405,16 @@ public class ProbabilityBasedAllocationStrategy implements AllocationStrategy {
       } else {
         hostAskList.set(0, hostAskList.get(0) + askCount);
       }
+      
+      // add any request 
+//      hostAskList = resourceRequests.get(ANY);
+//      if (null == hostAskList) {
+//        hostAskList = new ArrayList<Integer>();
+//        hostAskList.add(askCount);
+//        resourceRequests.put(ANY, hostAskList);
+//      } else {
+//        hostAskList.set(0, hostAskList.get(0) + askCount);
+//      }
       
       y += askCount;
       if (y >= x) {

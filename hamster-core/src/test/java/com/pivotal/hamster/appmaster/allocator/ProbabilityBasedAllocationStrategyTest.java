@@ -47,8 +47,7 @@ public class ProbabilityBasedAllocationStrategyTest {
           checkContains(resourceRequests, LOCALHOST, 5);
           checkContains(resourceRequests, RackResolver.resolve(LOCALHOST)
               .getNetworkLocation(), 5);
-          checkContains(resourceRequests, "*", 5);
-          checkContains(resourceRequests, "*", 1);
+          checkContains(resourceRequests, "*", 6);
 
           // mock output, 1 * local + 2 * mock_host1 + 1 * mock_host2
           AllocateResponse response = getEmptyResponse();
@@ -61,8 +60,7 @@ public class ProbabilityBasedAllocationStrategyTest {
         } else if (round == 1) {
           // check input, 2 * host2 + 1 * ANY + 3 * ANY + 3 * rack + 1 * ?
           checkContains(resourceRequests, "mock_host2", 2);
-          checkContains(resourceRequests, "*", 1);
-          checkContains(resourceRequests, "*", 3);
+          checkContains(resourceRequests, "*", 4);
           checkContains(resourceRequests, RackResolver.resolve(LOCALHOST)
               .getNetworkLocation(), 3);
           
@@ -97,8 +95,7 @@ public class ProbabilityBasedAllocationStrategyTest {
           checkContains(resourceRequests, LOCALHOST, 5);
           checkContains(resourceRequests, RackResolver.resolve(LOCALHOST)
               .getNetworkLocation(), 5);
-          checkContains(resourceRequests, "*", 5);
-          checkContains(resourceRequests, "*", 1);
+          checkContains(resourceRequests, "*", 6);
 
           // mock output, 1 * local + 2 * mock_host1 + 1 * mock_host2
           AllocateResponse response = getEmptyResponse();
@@ -111,8 +108,7 @@ public class ProbabilityBasedAllocationStrategyTest {
         } else if (round == 1) {
           // check input, 2 * ANY + 1 * ANY + 2 * local + 2 * rack
           checkContains(resourceRequests, LOCALHOST, 2);
-          checkContains(resourceRequests, "*", 1);
-          checkContains(resourceRequests, "*", 2);
+          checkContains(resourceRequests, "*", 3);
           checkContains(resourceRequests, RackResolver.resolve(LOCALHOST)
               .getNetworkLocation(), 2);
           
@@ -209,7 +205,8 @@ public class ProbabilityBasedAllocationStrategyTest {
     for (ResourceRequest req : requests) {
       if (StringUtils.equals(req.getHostName(), host) && (req.getNumContainers() == count)) {
         find = true;
-        break;
+      } else if (StringUtils.equals(req.getHostName(), host) && req.getNumContainers() != count) {
+        Assert.fail("find a inrelated request, what happened?");
       }
     }
     Assert.assertTrue(find);
