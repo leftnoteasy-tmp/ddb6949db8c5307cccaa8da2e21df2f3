@@ -125,10 +125,14 @@ public class ProbabilityBasedAllocationStrategy implements AllocationStrategy {
       Thread.sleep(200);
     }
     
+    LOG.info("STATISTIC: Iterations = " + round );    
+    
     // release extra containers
     releaseRedundantContainers();
     
-    return assembleAllocationResult();
+    Map<String, List<HamsterContainer>> nodeContainerMap = assembleAllocationResult();
+    LOG.info("STATISTIC: Nodes = " + nodeContainerMap.size() );
+    return nodeContainerMap;
   }
   
   Map<String, List<HamsterContainer>> assembleAllocationResult() {
@@ -258,6 +262,8 @@ public class ProbabilityBasedAllocationStrategy implements AllocationStrategy {
       }
     }
 
+    LOG.info("STATISTIC: Container Utilization = " + (m - releaseContainers.size()) / (float)m );
+    
     // check if we need release container in host-0
     if (nNeedRelease > 0) {
       List<Container> containerList = hostIdToContainers.get(0);
