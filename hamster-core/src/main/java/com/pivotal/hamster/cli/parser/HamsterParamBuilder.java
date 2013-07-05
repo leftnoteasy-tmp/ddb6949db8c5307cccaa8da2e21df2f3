@@ -195,11 +195,6 @@ public class HamsterParamBuilder {
        */
       int xmx = 512;
       int xms = 16;
-      if (this.hamsterMemory > 0) {
-        // hard code specified memory > 64M, because it will be problematic when
-        // we have memory less than 32M
-        xmx = this.hamsterMemory / 2;
-      }
       userParams.add(String.format("-Xmx%dM -Xms%dM", xmx, xms));
       
       // userParams.add("-Xdebug -Xrunjdwp:transport=dt_socket,server=y,address=\"8111\"");

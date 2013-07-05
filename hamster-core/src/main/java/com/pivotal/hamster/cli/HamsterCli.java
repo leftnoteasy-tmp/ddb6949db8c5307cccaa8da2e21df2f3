@@ -470,22 +470,12 @@ public class HamsterCli {
   
   void setContainerCtxResource(ContainerLaunchContext ctx) {
     Resource resource = recordFactory.newRecordInstance(Resource.class);
-    int mem = paramBuilder.getHamsterMemory();
     
     // we will use user specified memory to mpirun, by default, we will use 1024M
-    if (mem >= 0) {
-      resource.setMemory(mem);
-    } else {
-      resource.setMemory(HamsterConfig.DEFAULT_HAMSTER_MEM);
-    }
+    resource.setMemory(HamsterConfig.DEFAULT_HAMSTER_MEM);
     
     // set virtual cores, by default we will use 1 core
-    int cpu = paramBuilder.getHamsterCPU();
-    if (cpu >= 0) {
-      resource.setVirtualCores(cpu);
-    } else {
-      resource.setVirtualCores(HamsterConfig.DEFAULT_HAMSTER_CPU);
-    }
+    resource.setVirtualCores(HamsterConfig.DEFAULT_HAMSTER_CPU);
     
     ctx.setResource(resource);
   }
