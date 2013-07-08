@@ -53,6 +53,7 @@ import com.pivotal.hamster.cli.log.LogFetcher;
 import com.pivotal.hamster.cli.parser.HamsterParamBuilder;
 import com.pivotal.hamster.cli.utils.HamsterUtils;
 import com.pivotal.hamster.common.HamsterConfig;
+import com.pivotal.hamster.common.HostExprParser;
 import com.pivotal.hamster.yarnexecutor.YarnExecutor;
 
 /**
@@ -397,6 +398,29 @@ public class HamsterCli {
   	serializeLocalConfToFile(localResources, fs, appUploadPath);
   	
   	ctx.setLocalResources(localResources);
+  }
+  
+  void dumpParamtersToConf() {
+    String hostList = null;
+    
+    // try to dump host list to conf, if the host list is directly set, we will not try to expand host expr
+    if (paramBuilder.getHamsterHostList() != null) {
+      hostList = paramBuilder.getHamsterHostList();
+    } else if (paramBuilder.getHamsterHostExpr() != null) {
+      hostList = HostExprParser.parse(paramBuilder.getHamsterHostExpr());
+    }
+    if (null != hostList) {
+      conf.set(HamsterConfig.USER_POLICY_HOST_LIST_KEY, hostList);
+    }
+    
+    // try to dump mproc and mnode
+    if (paramBuilder.getHamsterMNode() > 0) {
+      conf.setInt(HamsterConfig.USER_POLICY_MNODE_KEY, paramBuilder.getHamsterMNode());
+    }
+    
+    if (paramBuilder.getHamsterMProc() > 0) {
+      conf.setInt(HamsterConfig.USER_POLICY_MPROC_KEY, paramBuilder.getHamsterMProc());
+    }
   }
   
   /**

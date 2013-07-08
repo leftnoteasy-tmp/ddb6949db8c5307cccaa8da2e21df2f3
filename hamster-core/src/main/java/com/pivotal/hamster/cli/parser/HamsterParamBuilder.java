@@ -44,6 +44,8 @@ public class HamsterParamBuilder {
     private int hamsterCPU = -1;
 
     String hostExpr = null;
+    String hostlist = null;
+    
     int mproc = -1;
     int mnode = -1;
     
@@ -284,6 +286,10 @@ public class HamsterParamBuilder {
     
     public int getHamsterMNode() {
       return this.mnode;
+    }
+
+    public String getHamsterHostList() {
+      return this.hostlist;
     }
 }
  
