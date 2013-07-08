@@ -16,7 +16,7 @@ abstract public class ContainerAllocator extends AbstractService {
     super(name);
   }
   
-  abstract public Map<String, List<HamsterContainer>> allocate(int n, Configuration conf) throws HamsterException;
+  abstract public Map<String, List<HamsterContainer>> allocate(int n) throws HamsterException;
   
   abstract public CompletedContainer[] pullCompletedContainers();
   

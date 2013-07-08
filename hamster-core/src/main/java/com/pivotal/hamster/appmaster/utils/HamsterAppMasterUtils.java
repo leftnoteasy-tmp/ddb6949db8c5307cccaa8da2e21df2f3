@@ -1,5 +1,7 @@
 package com.pivotal.hamster.appmaster.utils;
 
+import java.io.DataInputStream;
+import java.io.FileInputStream;
 import java.net.InetAddress;
 import java.net.NetworkInterface;
 import java.net.SocketException;
@@ -7,10 +9,14 @@ import java.net.UnknownHostException;
 
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
+import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.yarn.api.ApplicationConstants;
 import org.apache.hadoop.yarn.api.records.ApplicationAttemptId;
 import org.apache.hadoop.yarn.api.records.ContainerId;
 import org.apache.hadoop.yarn.util.ConverterUtils;
+
+import com.pivotal.hamster.common.HamsterConfig;
+import com.pivotal.hamster.common.HamsterException;
 
 public class HamsterAppMasterUtils {
   private static final Log LOG = LogFactory.getLog(HamsterAppMasterUtils.class);
@@ -54,6 +60,26 @@ public class HamsterAppMasterUtils {
   
   public static String getNormalizedLocalhost() throws UnknownHostException {
     return HamsterAppMasterUtils.normlizeHostName(java.net.InetAddress.getLocalHost().getHostName());
+  }
+  
+  public static Configuration getLocalConfiguration() {
+    try {
+      // open the file and try to read
+      FileInputStream fis = new FileInputStream(
+          HamsterConfig.DEFAULT_LOCALCONF_SERIALIZED_FILENAME);
+      DataInputStream is = new DataInputStream(fis);
+      
+      // read the content from file
+      Configuration conf = new Configuration(false);
+      conf.readFields(is);
+      
+      fis.close();
+      is.close();
+      
+      return conf;
+    } catch (Exception e) {
+      throw new HamsterException(e);
+    }
   }
   
   public static boolean isLocalHost(String host) {

@@ -95,7 +95,7 @@ public class YarnContainerAllocator extends ContainerAllocator {
   }
 
   @Override
-  public Map<String, List<HamsterContainer>> allocate(int n, Configuration conf) {
+  public Map<String, List<HamsterContainer>> allocate(int n) {
     long startTime = System.currentTimeMillis();
     
     // implement an algorithm to allocate from RM here, that will fill a Map<ProcessName, ContainerId>

@@ -54,6 +54,9 @@ public interface HamsterConfig {
   /* file name for serialized pb file */  
   public static final String DEFAULT_LOCALRESOURCE_SERIALIZED_FILENAME = "hamster_localresource_pb";
   
+  /* file name for serialized configuration file */
+  public static final String DEFAULT_LOCALCONF_SERIALIZED_FILENAME = "hamster_localconf_serilized";
+  
   /* umbilical port for HNP connect AM */
   public static final String AM_UMBILICAL_PORT_ENV_KEY = "AM_UMBILICAL_PORT";
   

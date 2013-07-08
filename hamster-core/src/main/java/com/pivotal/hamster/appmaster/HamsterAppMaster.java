@@ -22,6 +22,7 @@ import com.pivotal.hamster.appmaster.hnp.HnpLivenessMonitor;
 import com.pivotal.hamster.appmaster.hnp.HnpService;
 import com.pivotal.hamster.appmaster.launcher.ContainerLauncher;
 import com.pivotal.hamster.appmaster.launcher.YarnContainerLauncher;
+import com.pivotal.hamster.appmaster.utils.HamsterAppMasterUtils;
 
 public class HamsterAppMaster extends CompositeService {
   private static final Log LOG = LogFactory.getLog(HamsterAppMaster.class);
@@ -122,7 +123,7 @@ public class HamsterAppMaster extends CompositeService {
   public static void main(String[] args) {
     try {
       // get conf
-      YarnConfiguration conf = new YarnConfiguration();
+      Configuration conf = HamsterAppMasterUtils.getLocalConfiguration();
       
       // create am object
       HamsterAppMaster am = new HamsterAppMaster(args);

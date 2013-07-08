@@ -120,7 +120,7 @@ public class ContainerAllocatorTest {
     }
     
     @Override
-    public Map<String, List<HamsterContainer>> allocate(int n, Configuration conf) {
+    public Map<String, List<HamsterContainer>> allocate(int n) {
       // do nothing, only set allocate finished
       allocateFinished.getAndSet(true);
       
@@ -152,7 +152,7 @@ public class ContainerAllocatorTest {
     MockScheduler scheduler = (MockScheduler)allocator.getScheduler();
     
     // allocate
-    allocator.allocate(5, null);
+    allocator.allocate(5);
     Assert.assertTrue(allocator.allocateFinished.get());
     
     // now we will see if container can be returned

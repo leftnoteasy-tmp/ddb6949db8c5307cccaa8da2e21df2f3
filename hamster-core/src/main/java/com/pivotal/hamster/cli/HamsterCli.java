@@ -10,17 +10,13 @@ import java.net.InetSocketAddress;
 import java.net.URL;
 import java.net.URLDecoder;
 import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.Enumeration;
 import java.util.HashMap;
-import java.util.HashSet;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
-import java.util.Set;
 
-import org.apache.commons.lang.StringUtils;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 import org.apache.hadoop.conf.Configuration;
@@ -397,8 +393,39 @@ public class HamsterCli {
   	// serialize local resources for AM
   	serializeLocalResourceToFile(localResources, fs, appUploadPath);
   	
+  	// serialize conf for AM
+  	serializeLocalConfToFile(localResources, fs, appUploadPath);
+  	
   	ctx.setLocalResources(localResources);
   }
+  
+  /**
+   * user specified (or set by us) configuration will be needed by AM as well,
+   * so we need serialize it and upload it to staging area
+   */
+  void serializeLocalConfToFile(Map<String, LocalResource> resources, FileSystem fs, Path appUploadPath) throws IOException {
+    String filename = HamsterConfig.DEFAULT_LOCALCONF_SERIALIZED_FILENAME + "." + System.currentTimeMillis();
+    File file = new File(filename);
+    file.deleteOnExit();
+    
+    if (!file.createNewFile()) {
+      LOG.error("create file for local-conf serialize failed, filename:" + filename);
+      throw new IOException("create file for local-conf serialize failed, filename:" + filename);
+    }
+    
+    // serialize it to local
+    DataOutputStream os = new DataOutputStream(new FileOutputStream(file));
+    conf.write(os);
+    os.close();
+    
+    // upload it to staging area
+    String filenameInStagingArea = uploadFileToHDFS(filename, fs, appUploadPath.toString());
+    LocalResource res = constructLocalResource(fs, appUploadPath.toString(), filenameInStagingArea, LocalResourceType.FILE);
+    
+    // add this to local-resource
+    resources.put(HamsterConfig.DEFAULT_LOCALCONF_SERIALIZED_FILENAME, res);
+  }
+
   
   /**
    * user specified files/archives may not only needed by mpirun, but also needed by launched processes,
