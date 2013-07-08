@@ -400,7 +400,7 @@ public class HamsterCli {
   	ctx.setLocalResources(localResources);
   }
   
-  void dumpParamtersToConf() {
+  void dumpParamtersToConf() throws IOException {
     String hostList = null;
     
     // try to dump host list to conf, if the host list is directly set, we will not try to expand host expr
