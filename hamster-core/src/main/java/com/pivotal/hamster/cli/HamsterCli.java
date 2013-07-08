@@ -771,8 +771,7 @@ public class HamsterCli {
         appId, 
         conf, 
         UserGroupInformation.getLoginUser().getUserName(),
-        FileSystem.get(conf),
-        paramBuilder.getNp());
+        FileSystem.get(conf), -1);
     if (fetcher.checkLogFetchable()) {
       fetcher.readAll(finalStatus);
     }

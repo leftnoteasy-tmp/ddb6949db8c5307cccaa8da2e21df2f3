@@ -52,12 +52,8 @@ public class LogFetcher {
   }
   
   public boolean checkLogFetchable() throws IOException {
-    boolean aggEnable = this.conf.getBoolean("yarn.log-aggregation-enable", false);
-    if (!aggEnable) {
-      LOG.warn("yarn.log-aggregation-enable is not enabled, cannot aggregate logs, please go to log directory check log");
-      return false;
-    }
-    return true;
+    LOG.warn("we disabled the ability to fetch outputs from yarn, we need find a better way to do this");
+    return false;
   }
   
   public void readAll(FinalApplicationStatus amStatus) throws IOException {

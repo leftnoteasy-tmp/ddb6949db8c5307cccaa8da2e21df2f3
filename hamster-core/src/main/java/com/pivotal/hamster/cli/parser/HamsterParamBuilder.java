@@ -36,9 +36,6 @@ public class HamsterParamBuilder {
     /* parameters for user's env */
     Map<String, String> userEnvs;
     
-    /* -np # */
-    int np = -1;
-    
     boolean mpiApp;
     boolean verbose;
     // use valgrind to debug mpirun
@@ -74,12 +71,6 @@ public class HamsterParamBuilder {
       if (!mpiApp) {
         LOG.error("you must call \"hamster mpirun ... \", we don't support other application now!");
         throw new IOException("you must call \"hamster mpirun ... \", we don't support other application now!");
-      }
-      
-      // check if we have np specified
-      if (np <= 0) {
-        LOG.error("you should specify a number-mpi-processes >= 0 in this job (by {-c or -n or --n or -np}.");
-        throw new IOException("you should specify a number-mpi-processes >= 0 in this job (by {-c or -n or --n or -np}.");
       }
     }
 
@@ -162,13 +153,6 @@ public class HamsterParamBuilder {
       if (mcaParams.containsKey(key)) {
         mcaParams.remove(key);
       }
-    }
-    
-    /**
-     * get number of processes in this job (-np/-c/--n/-n)
-     */
-    public int getNp() {
-      return np;
     }
     
     public String[] getUserParam(ContainerLaunchContext ctx) {

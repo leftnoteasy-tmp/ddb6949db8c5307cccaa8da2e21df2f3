@@ -23,6 +23,5 @@ public class HamsterParamBuilderTest {
     
     Assert.assertEquals(512, builder.getHamsterMemory());
     Assert.assertEquals(1, builder.getHamsterCPU());
-    Assert.assertEquals(2, builder.getNp());
   }
 }
