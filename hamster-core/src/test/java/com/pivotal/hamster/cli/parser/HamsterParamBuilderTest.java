@@ -4,6 +4,7 @@ import java.io.IOException;
 
 import junit.framework.Assert;
 
+import org.apache.commons.lang.StringUtils;
 import org.junit.Test;
 
 import com.pivotal.hamster.cli.parser.HamsterParamBuilder;
@@ -11,7 +12,7 @@ import com.pivotal.hamster.cli.parser.HamsterParamBuilder;
 public class HamsterParamBuilderTest {
   @Test
   public void testBuildParam() throws IOException {
-    String input = "mpirun --hamster-mem 512 --hamster-cpu 1 -mca mca_aaa   mca_aaa_v -np 2 -mca xxx yyy -mca routed hello --add-file file.0 --add-file file://tmp/data/file.1#file.1 --add-archive home/data.tar.gz#data0 --hamster-verbose mpi_hello hello_world";
+    String input = "mpirun --hamster-host abc+123 --hamster-mnode 32 --hamster-mproc 64 --hamster-mem 512 --hamster-cpu 1 -mca mca_aaa   mca_aaa_v -np 2 -mca xxx yyy -mca routed hello --add-file file.0 --add-file file://tmp/data/file.1#file.1 --add-archive home/data.tar.gz#data0 --hamster-verbose mpi_hello hello_world";
     HamsterParamBuilder builder = new HamsterParamBuilder();
     builder.parse(input.split(" "));
     String cmd = builder.getUserCli(null);
@@ -23,5 +24,8 @@ public class HamsterParamBuilderTest {
     
     Assert.assertEquals(512, builder.getHamsterMemory());
     Assert.assertEquals(1, builder.getHamsterCPU());
+    Assert.assertTrue(StringUtils.equals(builder.getHamsterHostExpr(), "abc+123"));
+    Assert.assertEquals(32, builder.getHamsterMNode());
+    Assert.assertEquals(64, builder.getHamsterMProc());
   }
 }

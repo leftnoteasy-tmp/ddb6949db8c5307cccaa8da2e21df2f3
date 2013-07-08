@@ -97,6 +97,36 @@ public class HamsterCliParser implements CliParser {
 				  }
 					builder.setHamsterCPU(cpu);
 				}
+      } else if (StringUtils.equals(args[offset], "--hamster-host")) {
+        offset++;
+        if (offset >= args.length) {
+          throw new IOException("failed to parse --hamster-host");
+        }
+        
+        if (args[offset] != null && !args[offset].isEmpty()) {
+          String hostExpr = args[offset];
+          builder.setHamsterHostExpr(hostExpr);
+        }
+      } else if (StringUtils.equals(args[offset], "--hamster-mproc")) {
+        offset++;
+        if (offset >= args.length) {
+          throw new IOException("failed to parse --hamster-mproc");
+        }
+        
+        if (args[offset] != null && !args[offset].isEmpty()) {
+          int mproc = Integer.valueOf(args[offset]);
+          builder.setHamsterMProc(mproc);
+        }
+      } else if (StringUtils.equals(args[offset], "--hamster-mnode")) {
+        offset++;
+        if (offset >= args.length) {
+          throw new IOException("failed to parse --hamster-mnode");
+        }
+        
+        if (args[offset] != null && !args[offset].isEmpty()) {
+          int mnode = Integer.valueOf(args[offset]);
+          builder.setHamsterMNode(mnode);
+        }
       } else {
         output.add(args[offset]);
       }

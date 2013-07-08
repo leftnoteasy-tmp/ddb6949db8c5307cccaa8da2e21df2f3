@@ -42,6 +42,10 @@ public class HamsterParamBuilder {
     boolean valgrind;
     private int hamsterMemory = -1;
     private int hamsterCPU = -1;
+
+    String hostExpr = null;
+    int mproc = -1;
+    int mnode = -1;
     
     public HamsterParamBuilder() {
       mcaParams = new HashMap<String, String>();
@@ -256,6 +260,30 @@ public class HamsterParamBuilder {
     
     public int getHamsterCPU() {
     	return this.hamsterCPU;
+    }
+
+    public void setHamsterHostExpr(String hostExpr) {
+      this.hostExpr = hostExpr;
+    }
+    
+    public String getHamsterHostExpr() {
+      return this.hostExpr;
+    }
+    
+    public void setHamsterMProc(int mproc) {
+      this.mproc = mproc;
+    }
+    
+    public int getHamsterMProc() {
+      return this.mproc;
+    }
+    
+    public void setHamsterMNode(int mnode) {
+      this.mnode = mnode;
+    }
+    
+    public int getHamsterMNode() {
+      return this.mnode;
     }
 }
  
