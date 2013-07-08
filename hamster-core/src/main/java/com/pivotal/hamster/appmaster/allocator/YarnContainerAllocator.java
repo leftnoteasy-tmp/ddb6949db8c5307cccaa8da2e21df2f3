@@ -95,13 +95,13 @@ public class YarnContainerAllocator extends ContainerAllocator {
   }
 
   @Override
-  public Map<String, List<HamsterContainer>> allocate(int n) {
+  public Map<String, List<HamsterContainer>> allocate(int n, Configuration conf) {
     long startTime = System.currentTimeMillis();
     
     // implement an algorithm to allocate from RM here, that will fill a Map<ProcessName, ContainerId>
-    AllocationStrategy allocateStrategy = getStrategy();
+    AllocationStrategy allocateStrategy = getStrategy(conf);
     Map<String, List<HamsterContainer>> result;
-    result = allocateStrategy.allocate(n, releaseContainerQueue, resource);
+    result = allocateStrategy.allocate(n, releaseContainerQueue, resource, conf);
     
     // set allocateFinished
     allocateFinished.getAndSet(true);
@@ -184,8 +184,8 @@ public class YarnContainerAllocator extends ContainerAllocator {
     LOG.info("stop succeed");
   }
   
-  AllocationStrategy getStrategy() {
-    return new ProbabilityBasedAllocationStrategy(this, true);
+  AllocationStrategy getStrategy(Configuration conf) {
+    return AllocationStrategyFactory.getAllocationStrategy(this, conf);
   }
   
   void readResourceFromEnv() {

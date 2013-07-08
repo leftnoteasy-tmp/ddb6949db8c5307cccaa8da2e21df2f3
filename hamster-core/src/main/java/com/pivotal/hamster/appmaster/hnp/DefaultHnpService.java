@@ -289,6 +289,14 @@ public class DefaultHnpService extends HnpService {
     }
     doSuccessResponse(os, builder.build());
   }
+
+  /**
+   * TODO, in the future, the configuration need passed from client, like MR
+   * did, we need make it consistency, this is just a temporary solution
+   */
+  Configuration getAllocationConfiguration() {
+    return null;
+  }
   
   void doAllocate(DataOutputStream os, int n) throws IOException {
     // instanity check
@@ -299,7 +307,7 @@ public class DefaultHnpService extends HnpService {
     }
     
     // do allocate
-    allocateResult = containerAllocator.allocate(n);
+    allocateResult = containerAllocator.allocate(n, getAllocationConfiguration());
     if (allocateResult == null) {
       String msg = "got null allocateResult, please check";
       doFailedResponse(os, msg);

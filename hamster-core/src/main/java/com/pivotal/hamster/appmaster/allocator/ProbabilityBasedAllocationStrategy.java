@@ -12,6 +12,7 @@ import java.util.concurrent.ConcurrentLinkedQueue;
 
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
+import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.yarn.api.protocolrecords.AllocateResponse;
 import org.apache.hadoop.yarn.api.records.Container;
 import org.apache.hadoop.yarn.api.records.ContainerId;
@@ -68,14 +69,14 @@ public class ProbabilityBasedAllocationStrategy implements AllocationStrategy {
     }
   }
   
-  public ProbabilityBasedAllocationStrategy(YarnContainerAllocator allocator, boolean verbose) {
+  public ProbabilityBasedAllocationStrategy(ContainerAllocator allocator, boolean verbose) {
     this.verbose = verbose;
-    this.allocator = allocator;
+    this.allocator = (YarnContainerAllocator)allocator;
   }
   
   @Override
   public Map<String, List<HamsterContainer>> allocate(int n,
-      ConcurrentLinkedQueue<ContainerId> releaseContainers, Resource resource)
+      ConcurrentLinkedQueue<ContainerId> releaseContainers, Resource resource, Configuration conf)
       throws HamsterException {
     // init local variables
     this.n = n;

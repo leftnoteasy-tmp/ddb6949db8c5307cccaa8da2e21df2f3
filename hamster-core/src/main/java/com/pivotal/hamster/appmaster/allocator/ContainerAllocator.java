@@ -3,6 +3,7 @@ package com.pivotal.hamster.appmaster.allocator;
 import java.util.List;
 import java.util.Map;
 
+import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.yarn.api.records.FinalApplicationStatus;
 import org.apache.hadoop.yarn.service.AbstractService;
 
@@ -15,7 +16,7 @@ abstract public class ContainerAllocator extends AbstractService {
     super(name);
   }
   
-  abstract public Map<String, List<HamsterContainer>> allocate(int n) throws HamsterException;
+  abstract public Map<String, List<HamsterContainer>> allocate(int n, Configuration conf) throws HamsterException;
   
   abstract public CompletedContainer[] pullCompletedContainers();
   

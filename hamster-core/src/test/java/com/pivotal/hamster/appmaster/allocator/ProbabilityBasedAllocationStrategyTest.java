@@ -144,7 +144,7 @@ public class ProbabilityBasedAllocationStrategyTest {
     Allocator_testAllocation1 allocator = new Allocator_testAllocation1();
     ProbabilityBasedAllocationStrategy strategy = new ProbabilityBasedAllocationStrategy(allocator, false);
     ConcurrentLinkedQueue<ContainerId> releaseContainers = new ConcurrentLinkedQueue<ContainerId>();
-    strategy.allocate(5, releaseContainers, null);
+    strategy.allocate(5, releaseContainers, null, null);
     
     // check release
     // local: 1,
@@ -162,7 +162,7 @@ public class ProbabilityBasedAllocationStrategyTest {
     Allocator_testAllocation2 allocator = new Allocator_testAllocation2();
     ProbabilityBasedAllocationStrategy strategy = new ProbabilityBasedAllocationStrategy(allocator, false);
     ConcurrentLinkedQueue<ContainerId> releaseContainers = new ConcurrentLinkedQueue<ContainerId>();
-    strategy.allocate(5, releaseContainers, null);
+    strategy.allocate(5, releaseContainers, null, null);
     
     // check release
     // local: 1, 2, 3, 4, 5, [6, 7, 8]

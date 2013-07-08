@@ -16,6 +16,14 @@ public interface HamsterConfig {
     
   public final String HAMSTER_ENABLED_LOGKEYS_KEY = HAMSTER_CONFIG_PREFIX + "enabled.logkeys";
   
+  /*
+   * configuration names for allocation strategy
+   */
+  public static final String ALLOCATION_STRATEGY_KEY = HAMSTER_CONFIG_PREFIX + "allocation.strategy.name";
+  public static final String DEFAULT_HAMSTER_ALLOCATION_STRATEGY = "prob";
+  public static final String PROBABILITY_BASED_ALLOCATION_STRATEGY = "probability-based";
+  public static final String USER_POLICY_DRIVEN_ALLOCATION_STRATEGY = "user-driven";
+  
   /**
    * how many times that user will wait for log aggregation finished (in ms)
    */
