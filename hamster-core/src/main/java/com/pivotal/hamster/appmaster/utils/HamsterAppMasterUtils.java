@@ -70,7 +70,7 @@ public class HamsterAppMasterUtils {
       DataInputStream is = new DataInputStream(fis);
       
       // read the content from file
-      Configuration conf = new Configuration(false);
+      Configuration conf = new Configuration();
       conf.readFields(is);
       
       fis.close();

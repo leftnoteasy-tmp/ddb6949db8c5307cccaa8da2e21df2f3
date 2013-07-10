@@ -272,6 +272,14 @@ public class HamsterParamBuilder {
       return this.hostExpr;
     }
     
+    public void setHamsterHostlist(String hostlist) {
+      this.hostlist = hostlist;
+    }
+    
+    public String getHamsterHostlist() {
+      return this.hostlist;
+    }
+    
     public void setHamsterMProc(int mproc) {
       this.mproc = mproc;
     }

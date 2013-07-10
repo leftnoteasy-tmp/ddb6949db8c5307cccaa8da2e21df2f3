@@ -87,7 +87,7 @@ public class HostExprParser {
             String numStr = String.valueOf(i);
             if (numStr.length() < left.length()) {
               int paddingNum = left.length() - numStr.length();
-              for (int j = 0; i < paddingNum; i++) {
+              for (int j = 0; j < paddingNum; j++) {
                 numStr = "0" + numStr;
               }
             }
@@ -95,7 +95,7 @@ public class HostExprParser {
           }
         } else {
           // do it in non-padding way
-          for (int i = leftInt; i < rightInt; i++) {
+          for (int i = leftInt; i <= rightInt; i++) {
             list.add(String.valueOf(i));
           }
         }

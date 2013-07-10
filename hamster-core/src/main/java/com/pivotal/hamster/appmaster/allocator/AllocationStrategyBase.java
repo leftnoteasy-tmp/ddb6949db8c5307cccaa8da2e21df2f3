@@ -152,7 +152,7 @@ abstract public class AllocationStrategyBase implements AllocationStrategy {
     if (resourceRequests.containsKey(key)) {
       resourceRequests.put(key, resourceRequests.get(key) + count);
     } else {
-      resourceRequests.put(key, resourceRequests.get(key));
+      resourceRequests.put(key, count);
     }
   }
   

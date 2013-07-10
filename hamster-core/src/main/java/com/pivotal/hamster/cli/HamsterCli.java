@@ -402,6 +402,7 @@ public class HamsterCli {
   
   void dumpParamtersToConf() throws IOException {
     String hostList = null;
+    boolean isUserDefinedPolicy = false;
     
     // try to dump host list to conf, if the host list is directly set, we will not try to expand host expr
     if (paramBuilder.getHamsterHostList() != null) {
@@ -411,15 +412,27 @@ public class HamsterCli {
     }
     if (null != hostList) {
       conf.set(HamsterConfig.USER_POLICY_HOST_LIST_KEY, hostList);
+      isUserDefinedPolicy = true;
     }
     
     // try to dump mproc and mnode
     if (paramBuilder.getHamsterMNode() > 0) {
       conf.setInt(HamsterConfig.USER_POLICY_MNODE_KEY, paramBuilder.getHamsterMNode());
+      isUserDefinedPolicy = true;
     }
     
     if (paramBuilder.getHamsterMProc() > 0) {
       conf.setInt(HamsterConfig.USER_POLICY_MPROC_KEY, paramBuilder.getHamsterMProc());
+      isUserDefinedPolicy = true;
+    }
+    
+    // NOTE, if add more user defined policy parameter, need add here also
+    
+    // set allocation strategy used by AM
+    if (isUserDefinedPolicy) {
+      conf.set(HamsterConfig.ALLOCATION_STRATEGY_KEY, HamsterConfig.USER_POLICY_DRIVEN_ALLOCATION_STRATEGY);
+    } else {
+      conf.set(HamsterConfig.ALLOCATION_STRATEGY_KEY, HamsterConfig.PROBABILITY_BASED_ALLOCATION_STRATEGY);
     }
   }
   
@@ -428,6 +441,9 @@ public class HamsterCli {
    * so we need serialize it and upload it to staging area
    */
   void serializeLocalConfToFile(Map<String, LocalResource> resources, FileSystem fs, Path appUploadPath) throws IOException {
+    // first we need add necessary parameters to configuration
+    dumpParamtersToConf();
+    
     String filename = HamsterConfig.DEFAULT_LOCALCONF_SERIALIZED_FILENAME + "." + System.currentTimeMillis();
     File file = new File(filename);
     file.deleteOnExit();

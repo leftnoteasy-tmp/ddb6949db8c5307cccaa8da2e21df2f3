@@ -37,9 +37,16 @@ public class UserPolicyStrategy extends AllocationStrategyBase {
     String hostlist = conf.get(HamsterConfig.USER_POLICY_HOST_LIST_KEY);
     if (null != hostlist) {
       availableHosts = new HashSet<String>();
+      int hostId = 1;
       for (String host : hostlist.split(",")) {
         if (!host.isEmpty()) {
-          availableHosts.add(HamsterAppMasterUtils.normlizeHostName(host));
+          String normalizedHost = HamsterAppMasterUtils.normlizeHostName(host);
+          availableHosts.add(normalizedHost);
+          LOG.info("add predefined host:[" + normalizedHost + "] to known hosts.");
+          if (!hostToId.containsKey(normalizedHost)) {
+            hostToId.put(normalizedHost, hostId);
+            hostId++;
+          }
         }
       }
     }
@@ -120,7 +127,7 @@ public class UserPolicyStrategy extends AllocationStrategyBase {
       init();
     }
     
-    if (null == availableHosts || mnode >= 0) {
+    if (null == availableHosts || mnode < Short.MAX_VALUE) {
       LOG.error("we didn't support not specified availableHosts / specified mnode now");
       throw new HamsterException("we didn't support not specified availableHosts / specified mnode now");
     }
@@ -165,7 +172,7 @@ public class UserPolicyStrategy extends AllocationStrategyBase {
       ret.add(req);
     }
     
-    return null;
+    return ret;
   }
   
   private void putContainersToMpiProcSizeMap(int mpiProc,
@@ -273,6 +280,7 @@ public class UserPolicyStrategy extends AllocationStrategyBase {
         // update nNeedRelease
         nNeedRelease--;
       }
+      key--;
     }
   }
 
@@ -284,7 +292,7 @@ public class UserPolicyStrategy extends AllocationStrategyBase {
       return false;
     }
     if (getContainersCountForMpiProc(host) >= mproc) {
-      LOG.info("this host already have enough containers, discard this one");
+      LOG.info("this host already have enough containers, discard this one, host:" + host);
       return false;
     }
     return true;
