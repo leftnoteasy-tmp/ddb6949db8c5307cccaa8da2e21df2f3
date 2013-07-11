@@ -76,7 +76,7 @@ public class HostExprParser {
         }
         
         // check if we have padding '0' in starting of left 
-        if (left.startsWith("0")) {
+        if (left.startsWith("0") && (left.length() > 1)) {
           // if there's padding in left, we need make sure left and right has same length
           if (left.length() != right.length()) {
             throw new IOException(String.format("there's padding in left, so you need make sure left:[%s] and right:[%s] has same length", left, right));

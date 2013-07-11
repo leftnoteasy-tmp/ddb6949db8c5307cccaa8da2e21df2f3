@@ -50,7 +50,13 @@ public class HostExprParserTest {
     
     result = HostExprParser.parse("host1.[09-11].com");
     verifyParseResult(result, new String[] {"host1.09.com", "host1.10.com", "host1.11.com"});
-    
+
+    result = HostExprParser.parse("host1.[0-10].com");
+    verifyParseResult(result, new String[] { "host1.0.com", "host1.1.com",
+        "host1.2.com", "host1.3.com", "host1.4.com", "host1.5.com",
+        "host1.6.com", "host1.7.com", "host1.8.com", "host1.9.com",
+        "host1.10.com" });
+
     result = HostExprParser.parse("host.[1-2,a,b].com");
     verifyParseResult(result, new String[] {"host.1.com", "host.2.com", "host.a.com", "host.b.com"});
     
