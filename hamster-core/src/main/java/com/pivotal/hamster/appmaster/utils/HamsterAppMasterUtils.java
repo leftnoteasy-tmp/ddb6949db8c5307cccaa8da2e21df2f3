@@ -52,7 +52,7 @@ public class HamsterAppMasterUtils {
   public static String normlizeHostName(String host) {
     try {
       InetAddress addr = InetAddress.getByName(host);
-      return addr.getHostName();
+      return addr.getHostAddress();
     } catch (UnknownHostException e) {
       return host;
     }

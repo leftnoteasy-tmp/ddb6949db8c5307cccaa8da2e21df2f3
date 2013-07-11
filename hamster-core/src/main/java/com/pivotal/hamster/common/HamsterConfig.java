@@ -20,8 +20,8 @@ public interface HamsterConfig {
    * configuration names for allocation strategy
    */
   public static final String ALLOCATION_STRATEGY_KEY = HAMSTER_CONFIG_PREFIX + "allocation.strategy.name";
-  public static final String DEFAULT_HAMSTER_ALLOCATION_STRATEGY = "prob";
   public static final String PROBABILITY_BASED_ALLOCATION_STRATEGY = "probability-based";
+  public static final String DEFAULT_HAMSTER_ALLOCATION_STRATEGY = PROBABILITY_BASED_ALLOCATION_STRATEGY;
   public static final String USER_POLICY_DRIVEN_ALLOCATION_STRATEGY = "user-driven";
   public static final String USER_POLICY_HOST_LIST_KEY = HAMSTER_CONFIG_PREFIX + "user.policy.hostlist";
   public static final String USER_POLICY_MPROC_KEY = HAMSTER_CONFIG_PREFIX + "user.policy.mproc";

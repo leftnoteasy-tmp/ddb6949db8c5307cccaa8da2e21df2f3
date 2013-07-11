@@ -237,7 +237,11 @@ abstract public class AllocationStrategyBase implements AllocationStrategy {
   }
   
   void printAskList(int round, List<ResourceRequest> askList) {
-    
+    LOG.info("=========== ask list for round :[" + round + "] { ");
+    for (ResourceRequest request : askList) {
+      LOG.info("    resource request, host:" + request.getHostName() + " container_count:" + request.getNumContainers());
+    }
+    LOG.info("}");
   }
   
   int makeRemoteRequest(List<ResourceRequest> ask) throws YarnRemoteException, UnknownHostException {
