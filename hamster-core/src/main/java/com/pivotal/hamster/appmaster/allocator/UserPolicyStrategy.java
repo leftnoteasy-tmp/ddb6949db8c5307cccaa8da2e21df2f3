@@ -55,6 +55,12 @@ public class UserPolicyStrategy extends AllocationStrategyBase {
     mproc = conf.getInt(HamsterConfig.USER_POLICY_MPROC_KEY, Short.MAX_VALUE);
     mnode = conf.getInt(HamsterConfig.USER_POLICY_MNODE_KEY, Short.MAX_VALUE);
     
+    // sanity check if user specified hosts_num * mproc >= n
+    if (n > availableHosts.size() * mproc) {
+      LOG.error(String.format("user specified host count=%d, mproc=%d, the total number of slots in theory for this job=%d, but mpirun -np=%d, it's not possbile to allocate slots=-np=%d",
+          availableHosts.size(), mproc, availableHosts.size() * mproc, n, n));
+    }
+    
     initialized = true;
   }
   

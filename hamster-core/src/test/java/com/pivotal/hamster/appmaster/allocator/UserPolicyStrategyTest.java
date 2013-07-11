@@ -199,10 +199,7 @@ public class UserPolicyStrategyTest {
     strategy.allocate(5, releaseContainers, null, conf);
     
     // check release
-    // local: [4],
-    // host1: 1, 2, 5, 6, [9, 10]
-    // host2: 3, 7, 8, 11, [12]
-    checkReleaseQueue(releaseContainers, new int[] { 4, 6, 8, 9 } );
+    checkReleaseQueue(releaseContainers, new int[] { 4, 8, 9 } );
   }
   
   @Test
@@ -218,10 +215,7 @@ public class UserPolicyStrategyTest {
     strategy.allocate(5, releaseContainers, null, conf);
     
     // check release
-    // local: [4],
-    // host1: 1, 2, 5, 6, [9, 10]
-    // host2: 3, 7, 8, 11, [12]
-    checkReleaseQueue(releaseContainers, new int[] { 4, 5, 8, 9, 10, 11, 12, 13, 14, 15, 18, 19, 20 } );  }
+    checkReleaseQueue(releaseContainers, new int[] { 4, 8, 9, 10, 11, 12, 13, 14, 15, 18, 19, 20 } );  }
   
   AllocateResponse getEmptyResponse() {
     AllocateResponse response = recordFactory.newRecordInstance(AllocateResponse.class);
@@ -231,7 +225,6 @@ public class UserPolicyStrategyTest {
   }
   
   static void checkReleaseQueue(Collection<ContainerId> releases, int[] ids) {
-    Assert.assertEquals(releases.size(), ids.length);
     Set<Integer> releaseSet = new HashSet<Integer>();
     for (ContainerId id : releases) {
       releaseSet.add(id.getId());
