@@ -36,15 +36,18 @@ public class HamsterParamBuilder {
     /* parameters for user's env */
     Map<String, String> userEnvs;
     
-    /* -np # */
-    int np = -1;
-    
     boolean mpiApp;
     boolean verbose;
     // use valgrind to debug mpirun
     boolean valgrind;
     private int hamsterMemory = -1;
     private int hamsterCPU = -1;
+
+    String hostExpr = null;
+    String hostlist = null;
+    
+    int mproc = -1;
+    int mnode = -1;
     
     public HamsterParamBuilder() {
       mcaParams = new HashMap<String, String>();
@@ -74,12 +77,6 @@ public class HamsterParamBuilder {
       if (!mpiApp) {
         LOG.error("you must call \"hamster mpirun ... \", we don't support other application now!");
         throw new IOException("you must call \"hamster mpirun ... \", we don't support other application now!");
-      }
-      
-      // check if we have np specified
-      if (np <= 0) {
-        LOG.error("you should specify a number-mpi-processes >= 0 in this job (by {-c or -n or --n or -np}.");
-        throw new IOException("you should specify a number-mpi-processes >= 0 in this job (by {-c or -n or --n or -np}.");
       }
     }
 
@@ -164,13 +161,6 @@ public class HamsterParamBuilder {
       }
     }
     
-    /**
-     * get number of processes in this job (-np/-c/--n/-n)
-     */
-    public int getNp() {
-      return np;
-    }
-    
     public String[] getUserParam(ContainerLaunchContext ctx) {
       if (!mpiApp) {
         List<String> userParams = new ArrayList<String>();
@@ -195,11 +185,6 @@ public class HamsterParamBuilder {
        */
       int xmx = 512;
       int xms = 16;
-      if (this.hamsterMemory > 0) {
-        // hard code specified memory > 64M, because it will be problematic when
-        // we have memory less than 32M
-        xmx = this.hamsterMemory / 2;
-      }
       userParams.add(String.format("-Xmx%dM -Xms%dM", xmx, xms));
       
       // userParams.add("-Xdebug -Xrunjdwp:transport=dt_socket,server=y,address=\"8111\"");
@@ -277,6 +262,42 @@ public class HamsterParamBuilder {
     
     public int getHamsterCPU() {
     	return this.hamsterCPU;
+    }
+
+    public void setHamsterHostExpr(String hostExpr) {
+      this.hostExpr = hostExpr;
+    }
+    
+    public String getHamsterHostExpr() {
+      return this.hostExpr;
+    }
+    
+    public void setHamsterHostlist(String hostlist) {
+      this.hostlist = hostlist;
+    }
+    
+    public String getHamsterHostlist() {
+      return this.hostlist;
+    }
+    
+    public void setHamsterMProc(int mproc) {
+      this.mproc = mproc;
+    }
+    
+    public int getHamsterMProc() {
+      return this.mproc;
+    }
+    
+    public void setHamsterMNode(int mnode) {
+      this.mnode = mnode;
+    }
+    
+    public int getHamsterMNode() {
+      return this.mnode;
+    }
+
+    public String getHamsterHostList() {
+      return this.hostlist;
     }
 }
  

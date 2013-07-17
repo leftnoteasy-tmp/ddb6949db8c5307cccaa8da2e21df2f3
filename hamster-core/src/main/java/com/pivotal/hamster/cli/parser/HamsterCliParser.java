@@ -1,5 +1,8 @@
 package com.pivotal.hamster.cli.parser;
 
+import java.io.BufferedReader;
+import java.io.File;
+import java.io.FileReader;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
@@ -97,6 +100,67 @@ public class HamsterCliParser implements CliParser {
 				  }
 					builder.setHamsterCPU(cpu);
 				}
+      } else if (StringUtils.equals(args[offset], "--hamster-host")) {
+        offset++;
+        if (offset >= args.length) {
+          throw new IOException("failed to parse --hamster-host");
+        }
+        
+        if (args[offset] != null && !args[offset].isEmpty()) {
+          String hostExpr = args[offset];
+          builder.setHamsterHostExpr(hostExpr);
+        }
+      } else if (StringUtils.equals(args[offset], "--hamster-hostfile")) {
+        offset++;
+        if (offset >= args.length) {
+          throw new IOException("failed to parse --hamster-hostfile");
+        }
+        
+        if (args[offset] != null && !args[offset].isEmpty()) {
+          String hostfile = args[offset];
+          File file = new File(hostfile);
+          if (!file.exists() || file.isDirectory()) {
+            throw new IOException("failed to read hostfile:" + hostfile);
+          }
+          FileReader fr = new FileReader(file);
+          BufferedReader br = new BufferedReader(fr);
+          String line;
+          String hostlist = "";
+          while (null != (line = br.readLine())) {
+            // simply check for comments or blank line
+            if (line.startsWith("#") || line.trim().isEmpty()) {
+              continue;
+            }
+            if (!hostlist.isEmpty()) {
+              hostlist = hostlist + ",";
+            }
+            hostlist = hostlist + line;
+          }
+          fr.close();
+          br.close();
+          
+          builder.setHamsterHostlist(hostlist);
+        }
+      } else if (StringUtils.equals(args[offset], "--hamster-mproc")) {
+        offset++;
+        if (offset >= args.length) {
+          throw new IOException("failed to parse --hamster-mproc");
+        }
+        
+        if (args[offset] != null && !args[offset].isEmpty()) {
+          int mproc = Integer.valueOf(args[offset]);
+          builder.setHamsterMProc(mproc);
+        }
+      } else if (StringUtils.equals(args[offset], "--hamster-mnode")) {
+        offset++;
+        if (offset >= args.length) {
+          throw new IOException("failed to parse --hamster-mnode");
+        }
+        
+        if (args[offset] != null && !args[offset].isEmpty()) {
+          int mnode = Integer.valueOf(args[offset]);
+          builder.setHamsterMNode(mnode);
+        }
       } else {
         output.add(args[offset]);
       }

@@ -27,7 +27,6 @@ import com.pivotal.hamster.appmaster.event.HamsterEvent;
 import com.pivotal.hamster.appmaster.event.HamsterEventType;
 import com.pivotal.hamster.appmaster.event.HamsterFailureEvent;
 import com.pivotal.hamster.appmaster.launcher.ContainerLauncher;
-import com.pivotal.hamster.appmaster.utils.HadoopRpcUtils;
 import com.pivotal.hamster.appmaster.utils.HamsterAppMasterUtils;
 import com.pivotal.hamster.common.CompletedContainer;
 import com.pivotal.hamster.common.HamsterContainer;
@@ -61,6 +60,7 @@ public class DefaultHnpService extends HnpService {
   Map<String, List<HamsterContainer>> allocateResult;
   Map<Integer, ProcessName> containerIdToName;
   Dispatcher dispatcher;
+  Configuration conf;
   
   public DefaultHnpService(Dispatcher dispatcher,
       ContainerAllocator containerAllocator, 
@@ -85,6 +85,8 @@ public class DefaultHnpService extends HnpService {
       throw new YarnException(e);
     }
     LOG.info("init succeed");
+    this.conf = conf;
+    super.init(conf);
   }
   
   @Override

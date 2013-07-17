@@ -10,17 +10,13 @@ import java.net.InetSocketAddress;
 import java.net.URL;
 import java.net.URLDecoder;
 import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.Enumeration;
 import java.util.HashMap;
-import java.util.HashSet;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
-import java.util.Set;
 
-import org.apache.commons.lang.StringUtils;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 import org.apache.hadoop.conf.Configuration;
@@ -57,6 +53,7 @@ import com.pivotal.hamster.cli.log.LogFetcher;
 import com.pivotal.hamster.cli.parser.HamsterParamBuilder;
 import com.pivotal.hamster.cli.utils.HamsterUtils;
 import com.pivotal.hamster.common.HamsterConfig;
+import com.pivotal.hamster.common.HostExprParser;
 import com.pivotal.hamster.yarnexecutor.YarnExecutor;
 
 /**
@@ -397,8 +394,78 @@ public class HamsterCli {
   	// serialize local resources for AM
   	serializeLocalResourceToFile(localResources, fs, appUploadPath);
   	
+  	// serialize conf for AM
+  	serializeLocalConfToFile(localResources, fs, appUploadPath);
+  	
   	ctx.setLocalResources(localResources);
   }
+  
+  void dumpParamtersToConf() throws IOException {
+    String hostList = null;
+    boolean isUserDefinedPolicy = false;
+    
+    // try to dump host list to conf, if the host list is directly set, we will not try to expand host expr
+    if (paramBuilder.getHamsterHostList() != null) {
+      hostList = paramBuilder.getHamsterHostList();
+    } else if (paramBuilder.getHamsterHostExpr() != null) {
+      hostList = HostExprParser.parse(paramBuilder.getHamsterHostExpr());
+    }
+    if (null != hostList) {
+      conf.set(HamsterConfig.USER_POLICY_HOST_LIST_KEY, hostList);
+      isUserDefinedPolicy = true;
+    }
+    
+    // try to dump mproc and mnode
+    if (paramBuilder.getHamsterMNode() > 0) {
+      conf.setInt(HamsterConfig.USER_POLICY_MNODE_KEY, paramBuilder.getHamsterMNode());
+      isUserDefinedPolicy = true;
+    }
+    
+    if (paramBuilder.getHamsterMProc() > 0) {
+      conf.setInt(HamsterConfig.USER_POLICY_MPROC_KEY, paramBuilder.getHamsterMProc());
+      isUserDefinedPolicy = true;
+    }
+    
+    // NOTE, if add more user defined policy parameter, need add here also
+    
+    // set allocation strategy used by AM
+    if (isUserDefinedPolicy) {
+      conf.set(HamsterConfig.ALLOCATION_STRATEGY_KEY, HamsterConfig.USER_POLICY_DRIVEN_ALLOCATION_STRATEGY);
+    } else {
+      conf.set(HamsterConfig.ALLOCATION_STRATEGY_KEY, HamsterConfig.PROBABILITY_BASED_ALLOCATION_STRATEGY);
+    }
+  }
+  
+  /**
+   * user specified (or set by us) configuration will be needed by AM as well,
+   * so we need serialize it and upload it to staging area
+   */
+  void serializeLocalConfToFile(Map<String, LocalResource> resources, FileSystem fs, Path appUploadPath) throws IOException {
+    // first we need add necessary parameters to configuration
+    dumpParamtersToConf();
+    
+    String filename = HamsterConfig.DEFAULT_LOCALCONF_SERIALIZED_FILENAME + "." + System.currentTimeMillis();
+    File file = new File(filename);
+    file.deleteOnExit();
+    
+    if (!file.createNewFile()) {
+      LOG.error("create file for local-conf serialize failed, filename:" + filename);
+      throw new IOException("create file for local-conf serialize failed, filename:" + filename);
+    }
+    
+    // serialize it to local
+    DataOutputStream os = new DataOutputStream(new FileOutputStream(file));
+    conf.write(os);
+    os.close();
+    
+    // upload it to staging area
+    String filenameInStagingArea = uploadFileToHDFS(filename, fs, appUploadPath.toString());
+    LocalResource res = constructLocalResource(fs, appUploadPath.toString(), filenameInStagingArea, LocalResourceType.FILE);
+    
+    // add this to local-resource
+    resources.put(HamsterConfig.DEFAULT_LOCALCONF_SERIALIZED_FILENAME, res);
+  }
+
   
   /**
    * user specified files/archives may not only needed by mpirun, but also needed by launched processes,
@@ -470,22 +537,12 @@ public class HamsterCli {
   
   void setContainerCtxResource(ContainerLaunchContext ctx) {
     Resource resource = recordFactory.newRecordInstance(Resource.class);
-    int mem = paramBuilder.getHamsterMemory();
     
     // we will use user specified memory to mpirun, by default, we will use 1024M
-    if (mem >= 0) {
-      resource.setMemory(mem);
-    } else {
-      resource.setMemory(HamsterConfig.DEFAULT_HAMSTER_MEM);
-    }
+    resource.setMemory(HamsterConfig.DEFAULT_HAMSTER_MEM);
     
     // set virtual cores, by default we will use 1 core
-    int cpu = paramBuilder.getHamsterCPU();
-    if (cpu >= 0) {
-      resource.setVirtualCores(cpu);
-    } else {
-      resource.setVirtualCores(HamsterConfig.DEFAULT_HAMSTER_CPU);
-    }
+    resource.setVirtualCores(HamsterConfig.DEFAULT_HAMSTER_CPU);
     
     ctx.setResource(resource);
   }
@@ -754,8 +811,7 @@ public class HamsterCli {
         appId, 
         conf, 
         UserGroupInformation.getLoginUser().getUserName(),
-        FileSystem.get(conf),
-        paramBuilder.getNp());
+        FileSystem.get(conf), -1);
     if (fetcher.checkLogFetchable()) {
       fetcher.readAll(finalStatus);
     }

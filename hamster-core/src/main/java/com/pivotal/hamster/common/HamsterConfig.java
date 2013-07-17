@@ -16,6 +16,17 @@ public interface HamsterConfig {
     
   public final String HAMSTER_ENABLED_LOGKEYS_KEY = HAMSTER_CONFIG_PREFIX + "enabled.logkeys";
   
+  /*
+   * configuration names for allocation strategy
+   */
+  public static final String ALLOCATION_STRATEGY_KEY = HAMSTER_CONFIG_PREFIX + "allocation.strategy.name";
+  public static final String PROBABILITY_BASED_ALLOCATION_STRATEGY = "probability-based";
+  public static final String DEFAULT_HAMSTER_ALLOCATION_STRATEGY = PROBABILITY_BASED_ALLOCATION_STRATEGY;
+  public static final String USER_POLICY_DRIVEN_ALLOCATION_STRATEGY = "user-driven";
+  public static final String USER_POLICY_HOST_LIST_KEY = HAMSTER_CONFIG_PREFIX + "user.policy.hostlist";
+  public static final String USER_POLICY_MPROC_KEY = HAMSTER_CONFIG_PREFIX + "user.policy.mproc";
+  public static final String USER_POLICY_MNODE_KEY = HAMSTER_CONFIG_PREFIX + "user.policy.mnode";
+
   /**
    * how many times that user will wait for log aggregation finished (in ms)
    */
@@ -45,6 +56,9 @@ public interface HamsterConfig {
   
   /* file name for serialized pb file */  
   public static final String DEFAULT_LOCALRESOURCE_SERIALIZED_FILENAME = "hamster_localresource_pb";
+  
+  /* file name for serialized configuration file */
+  public static final String DEFAULT_LOCALCONF_SERIALIZED_FILENAME = "hamster_localconf_serilized";
   
   /* umbilical port for HNP connect AM */
   public static final String AM_UMBILICAL_PORT_ENV_KEY = "AM_UMBILICAL_PORT";
