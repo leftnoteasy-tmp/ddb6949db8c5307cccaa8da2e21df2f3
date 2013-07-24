@@ -6,7 +6,7 @@
 #include <pthread.h>
 
 #include "opal/util/output.h"
-#include "src/pbc/pbc.h"
+#include "base/pbc/pbc.h"
 
 extern struct pbc_env* orte_hdclient_pb_env;
 extern int orte_umbilical_socket_id; 
