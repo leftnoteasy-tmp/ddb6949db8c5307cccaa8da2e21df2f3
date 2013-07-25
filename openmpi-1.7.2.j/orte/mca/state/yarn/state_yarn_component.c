@@ -71,7 +71,7 @@ static int state_yarn_component_query(mca_base_module_t **module, int *priority)
 {
     if (ORTE_PROC_IS_HNP) {
         /* set our priority high as we are the default for yarns */
-        *priority = 90;
+        *priority = 30;
         *module = (mca_base_module_t *)&orte_state_yarn_module;
         return ORTE_SUCCESS;        
     }

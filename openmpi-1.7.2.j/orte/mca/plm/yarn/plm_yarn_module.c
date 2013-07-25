@@ -79,12 +79,15 @@
 #include "orte/mca/hdclient/hdclient.h"
 #include "orte/mca/rml/rml.h"
 #include "orte/mca/grpcomm/grpcomm.h"
+#include "orte/mca/ess/base/base.h"
+#include "orte/mca/plm/base/base.h"
+#include "orte/mca/plm/plm_types.h"
 
 #define ORTE_RML_TAG_YARN_SYNC_REQUEST      97
 #define ORTE_RML_TAG_YARN_SYNC_RESPONSE     98
 
 /*
- * Local functions for orte_plm_slurm_module
+ * Local functions for orte_plm_yarn_module
  */
 static int plm_yarn_init(void);
 static int plm_yarn_launch_job(orte_job_t *jdata);
@@ -121,11 +124,10 @@ static void plm_yarn_launch_apps(int fd, short args, void *cbdata);
 static void plm_yarn_quit(int fd, short args, void* cbdata);
 static void plm_yarn_cleanup_job(int fd, short args, void *cbdata);
 
-
 /*
  * Global variable
  */
-orte_plm_base_module_1_0_0_t orte_plm_slurm_module = {
+orte_plm_base_module_1_0_0_t orte_plm_yarn_module = {
 	plm_yarn_init,
     orte_plm_base_set_hnp_name,
     plm_yarn_launch_job,
@@ -145,24 +147,26 @@ static int num_sync_daemons = 0;
 static int num_completed_jdata_procs = 0;
 static bool appmaster_finished = false;
 
+
 /**
 * Init the module
  */
 static int plm_yarn_init(void)
 {
     int rc;
-    
+
     if (ORTE_SUCCESS != (rc = orte_plm_base_comm_start())) {
         ORTE_ERROR_LOG(rc);
         return rc;
     }
 
-    /* point to our launch command */
-    if (ORTE_SUCCESS != (rc = orte_state.add_job_state(ORTE_JOB_STATE_LAUNCH_DAEMONS,
-                                                       launch_daemons, ORTE_SYS_PRI))) {
-        ORTE_ERROR_LOG(rc);
-        return rc;
-    }
+        /* point to our launch apps callback */
+	if (ORTE_SUCCESS
+			!= (rc = orte_state.add_job_state(ORTE_JOB_STATE_LAUNCH_DAEMONS,
+					launch_daemons, ORTE_SYS_PRI))) {
+		ORTE_ERROR_LOG(rc);
+		return rc;
+	}
 
     /* point to our launch apps callback */
 	if (ORTE_SUCCESS
@@ -312,6 +316,15 @@ static void heartbeat_with_AM_cb(int fd, short event, void *data)
         orte_job_t* tmp_jdata = (orte_job_t*) opal_pointer_array_get_item(orte_job_data, local_jobid);
         orte_proc_t* proc = (orte_proc_t*) opal_pointer_array_get_item(tmp_jdata->procs, vpid);
 
+
+        if (tmp_jdata->jobid == jdata->jobid) {
+			num_completed_jdata_procs++;
+		}
+
+        if (exit_value == 0) {
+        	proc->state = ORTE_PROC_STATE_TERMINATED;
+        }
+
         /* if this process is already terminated, just skip over */
         if (proc->state >= ORTE_PROC_STATE_TERMINATED) {
             continue;
@@ -337,10 +350,6 @@ static void heartbeat_with_AM_cb(int fd, short event, void *data)
             opal_event_evtimer_set(orte_event_base, ev, process_state_monitor_cb, proc);
             opal_event_evtimer_add(ev, &delay);
         }
-
-        if (tmp_jdata->jobid == jdata->jobid) {
-            num_completed_jdata_procs++;
-        }
     }
 
 cleanup:
@@ -354,6 +363,7 @@ cleanup:
          * modify job state to ORTE_JOB_STATE_TERMINATED
          */
         jdata->state = ORTE_JOB_STATE_TERMINATED;
+        finish_app_master(0 == orte_exit_status);
         return;
     } else {
         /* next heartbeat */
@@ -480,7 +490,6 @@ static int setup_proc_env_and_argv(orte_job_t* jdata, orte_app_context_t* app,
     free(job_id_str);
 
     /* pass the rank */
-    param = mca_base_param_environ_variable("orte","ess","vpid");
     param = mca_base_param_env_var("orte_ess_vpid");
     opal_setenv(param, vp_id_str, true, penv);
     free(param);
@@ -1074,7 +1083,8 @@ static void yarn_hnp_sync_recv(int status, orte_process_name_t* sender,
     }
 }
 
-static void plm_yarn_launch_apps(int fd, short args, void *cbdata) {
+static void plm_yarn_launch_apps(int fd, short args, void *cbdata)
+{
     int rc;
     orte_job_t *jdata;
     orte_state_caddy_t *caddy = (orte_state_caddy_t*)cbdata;
@@ -1127,7 +1137,7 @@ static void finish_app_master(bool succeed)
                     continue;
                 }
                 // if any process is non-terminated, we will consider it's error
-                if (proc->state != ORTE_PROC_STATE_TERMINATED) {
+                if (proc->state < ORTE_PROC_STATE_TERMINATED) {
                     succeed = false;
                     break; /* break the inner 'for' loop */
                 }
@@ -1152,6 +1162,8 @@ static void finish_app_master(bool succeed)
                 ORTE_NAME_PRINT(ORTE_PROC_MY_NAME));
         goto cleanup;
     }
+
+
 
     rc = pbc_wmessage_integer(request_msg, "succeed", succeed, 0);
     if (0 != rc) {
