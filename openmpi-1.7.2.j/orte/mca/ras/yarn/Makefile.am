@@ -19,7 +19,7 @@
 
 AM_CPPFLAGS = $(ras_yarn_CPPFLAGS)
 
-dist_pkgdata_DATA = help-ras-yarn.txt
+#dist_pkgdata_DATA = help-ras-yarn.txt
 
 sources = \
         ras_yarn.h \
