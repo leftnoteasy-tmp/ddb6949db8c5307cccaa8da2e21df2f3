@@ -385,18 +385,6 @@ cleanup:
  */
 static int plm_yarn_launch_job(orte_job_t *jdata)
 {
-	//============heartbeat with AM======
-	opal_event_t *ev = NULL;
-	ev = (opal_event_t*) malloc(sizeof(opal_event_t));
-
-	struct timeval delay;
-	delay.tv_sec = 1;
-	delay.tv_usec = 0;
-
-	opal_event_evtimer_set(orte_event_base, ev, heartbeat_with_AM_cb, jdata);
-	opal_event_evtimer_add(ev, &delay);
-	//===================================
-
     if (ORTE_JOB_CONTROL_RESTART & jdata->controls) {
         /* this is a restart situation - skip to the mapping stage */
         ORTE_ACTIVATE_JOB_STATE(jdata, ORTE_JOB_STATE_MAP);
@@ -1022,7 +1010,7 @@ static int plm_yarn_actual_launch_procs(orte_job_t* jdata)
     int launched_proc_num = 0;
 
     OPAL_OUTPUT_VERBOSE((5, orte_plm_globals.output,
-                    "%s plm:yarn:launch_apps for job %s",
+                    "%s plm:yarn:plm_yarn_actual_launch_procs for job %s",
                     ORTE_NAME_PRINT(ORTE_PROC_MY_NAME),
                     ORTE_JOBID_PRINT(jdata->jobid)));
 
@@ -1109,6 +1097,18 @@ static void plm_yarn_launch_apps(int fd, short args, void *cbdata)
     }
 
     orte_plm_base_launch_apps(fd, args, cbdata);
+
+	//============heartbeat with AM======
+	opal_event_t *ev = NULL;
+	ev = (opal_event_t*) malloc(sizeof(opal_event_t));
+
+	struct timeval delay;
+	delay.tv_sec = 1;
+	delay.tv_usec = 0;
+
+	opal_event_evtimer_set(orte_event_base, ev, heartbeat_with_AM_cb, jdata);
+	opal_event_evtimer_add(ev, &delay);
+	//===================================
 }
 
 
