@@ -443,13 +443,13 @@ static int setup_proc_env_and_argv(orte_job_t* jdata, orte_app_context_t* app,
     opal_argv_append_nosize(pargv, "2><LOG_DIR>/stderr");
 
     // add java executor to app
-    opal_argv_append_nosize(pargv, vp_id_str);
-    opal_argv_append_nosize(pargv, job_id_str);
-    opal_argv_append_nosize(pargv, "com.pivotal.hamster.yarnexecutor.YarnExecutor");
-    opal_argv_append_nosize(pargv, "hamster-core.jar");
-    opal_argv_append_nosize(pargv, "-cp");
-    opal_argv_append_nosize(pargv, getenv("HAMSTER_JAVA_OPT")==NULL ? "-Xmx32M -Xms8M" : getenv("HAMSTER_JAVA_OPT"));
-    opal_argv_append_nosize(pargv, "$JAVA_HOME/bin/java");
+    opal_argv_prepend_nosize(pargv, vp_id_str);
+    opal_argv_prepend_nosize(pargv, job_id_str);
+    opal_argv_prepend_nosize(pargv, "com.pivotal.hamster.yarnexecutor.YarnExecutor");
+    opal_argv_prepend_nosize(pargv, "hamster-core.jar");
+    opal_argv_prepend_nosize(pargv, "-cp");
+    opal_argv_prepend_nosize(pargv, getenv("HAMSTER_JAVA_OPT")==NULL ? "-Xmx32M -Xms8M" : getenv("HAMSTER_JAVA_OPT"));
+    opal_argv_prepend_nosize(pargv, "$JAVA_HOME/bin/java");
 
     /* obtain app->env */
     *penv = opal_environ_merge(environ, app->env);
