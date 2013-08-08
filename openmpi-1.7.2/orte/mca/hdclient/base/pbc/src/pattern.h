@@ -1,7 +1,7 @@
 #ifndef PROTOBUF_C_PATTERN_H
 #define PROTOBUF_C_PATTERN_H
 
-#include "src/pbc/pbc.h"
+#include "base/pbc/pbc.h"
 #include "context.h"
 #include "array.h"
 

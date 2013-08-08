@@ -1,7 +1,7 @@
 #ifndef PROTOBUFC_PROTO_H
 #define PROTOBUFC_PROTO_H
 
-#include "src/pbc/pbc.h"
+#include "base/pbc/pbc.h"
 #include "map.h"
 #include "array.h"
 

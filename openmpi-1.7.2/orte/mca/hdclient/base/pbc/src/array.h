@@ -2,7 +2,7 @@
 #define PROTOBUF_C_ARRAY_H
 
 #include "varint.h"
-#include "src/pbc/pbc.h"
+#include "base/pbc/pbc.h"
 #include "alloc.h"
 
 typedef union _pbc_var {

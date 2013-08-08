@@ -1,4 +1,4 @@
-#include "src/pbc/pbc.h"
+#include "base/pbc/pbc.h"
 #include "proto.h"
 #include "pattern.h"
 #include "map.h"

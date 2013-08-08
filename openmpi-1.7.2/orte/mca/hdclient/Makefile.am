@@ -33,10 +33,10 @@ ortedir = $(includedir)/openmpi/$(subdir)
 nobase_orte_HEADERS = $(headers)
 endif
 
-include src/Makefile.am
+include base/Makefile.am
 
 distclean-local: 
-	rm -f src/static-components.h
+	rm -f base/static-components.h
 
 install-data-local:
 	$(MKDIR_P) $(DESTDIR)$(sysconfdir)/protos/
