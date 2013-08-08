@@ -59,15 +59,8 @@
 /*
  * API functions
  */
-static int init(void);
 static int orte_ras_yarn_allocate(opal_list_t *nodes);
 static int orte_ras_yarn_finalize(void);
-
-
-/*
- * Local functions
- */
-static int release_containers(int release_cid_array[],  int count);
 
 /*
  * RAS yarn module
@@ -76,12 +69,6 @@ orte_ras_base_module_t orte_ras_yarn_module = {
     orte_ras_yarn_allocate,
     orte_ras_yarn_finalize
 };
-
-static int init(void)
-{
-    int rc;
-    return ORTE_SUCCESS;
-}
 
 static int register_to_am() {
     int rc;
@@ -239,5 +226,5 @@ static int orte_ras_yarn_allocate(opal_list_t* nodes) {
 }
 
 static int orte_ras_yarn_finalize(void) {
-    // TODO, add code to close socket, etc.
+	return ORTE_SUCCESS;
 }

@@ -19,7 +19,7 @@
 
 AM_CPPFLAGS = $(ras_yarn_CPPFLAGS)
 
-dist_pkgdata_DATA = help-ras-yarn.txt
+#dist_pkgdata_DATA = help-ras-yarn.txt
 
 sources = \
         ras_yarn.h \
@@ -31,7 +31,7 @@ sources = \
 # mca_<type>_<name>.la (for DSO builds) or libmca_<type>_<name>.la
 # (for static builds).
 
-if OMPI_BUILD_ras_yarn_DSO
+if MCA_BUILD_orte_ras_yarn_DSO
 lib =
 lib_sources = 
 component = mca_ras_yarn.la

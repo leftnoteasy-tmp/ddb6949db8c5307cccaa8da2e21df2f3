@@ -107,6 +107,9 @@
 #include <sys/select.h>
 #endif
 
+#include <sys/types.h>
+#include <dirent.h>
+
 #include "opal/mca/hwloc/hwloc.h"
 #include "opal/mca/hwloc/base/base.h"
 #include "opal/class/opal_pointer_array.h"
@@ -127,6 +130,10 @@
 #include "orte/mca/odls/base/odls_private.h"
 #include "orte/mca/odls/yarn/odls_yarn.h"
 
+
+#include "orte/mca/state/state.h"
+#include "orte/mca/sensor/sensor.h"
+#include "orte/mca/rml/rml.h"
 
 #define ORTE_RML_TAG_YARN_SYNC_REQUEST      97
 #define ORTE_RML_TAG_YARN_SYNC_RESPONSE     98
