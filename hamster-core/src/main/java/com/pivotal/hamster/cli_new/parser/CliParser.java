@@ -7,8 +7,6 @@ import org.apache.commons.cli.Option;
 import org.apache.commons.cli.Options;
 import org.apache.commons.cli.ParseException;
 
-import com.pivotal.hamster.cli_new.HamsterCommandLine;
-
 public class CliParser {
   Options options;
   
@@ -85,6 +83,7 @@ public class CliParser {
             addOption(new Option("ppr", "ppr", true, "")).
             addOption(new Option("prefix", "prefix", true, "")).
             addOption(new Option("preload-files", "preload-files", true, "")).
+            addOption(new Option("preload-archives", "preload-archives", true, "")).
             addOption(new Option("preload-files-dest-dir", "preload-files-dest-dir", true, "")).
             addOption(new Option("q", "quiet", false, "")).
             addOption(new Option("rank-by", "rank-by", true, "")).

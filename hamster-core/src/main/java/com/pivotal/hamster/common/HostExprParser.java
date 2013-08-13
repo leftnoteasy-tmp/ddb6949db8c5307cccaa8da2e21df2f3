@@ -26,7 +26,7 @@ public class HostExprParser {
     }
   }
   
-  static void processSlice(String slice, List<String> list) throws IOException {
+  static void processSlice(String slice, List<String> list) throws HamsterCliParseException {
     // remove leading and trailing spaces
     slice = slice.trim(); 
     
@@ -62,24 +62,24 @@ public class HostExprParser {
         int leftInt = Integer.parseInt(left);
         int rightInt = Integer.parseInt(right);
         if (leftInt > rightInt) {
-          throw new IOException(String.format("left bound:%d is larger than right bound:%d", leftInt, rightInt));
+          throw new HamsterCliParseException(String.format("left bound:%d is larger than right bound:%d", leftInt, rightInt));
         }
         
         // check if length of left is <= length of right
         if (left.length() > right.length()) {
-          throw new IOException(String.format("left string:[%s] length is larger than right string:[%s] length", left, right));
+          throw new HamsterCliParseException(String.format("left string:[%s] length is larger than right string:[%s] length", left, right));
         }
         
         // check if left or right is negtive
         if (leftInt < 0 || rightInt < 0) {
-          throw new IOException(String.format("find negtive int in range, left:%d, right%d", leftInt, rightInt));
+          throw new HamsterCliParseException(String.format("find negtive int in range, left:%d, right%d", leftInt, rightInt));
         }
         
         // check if we have padding '0' in starting of left 
         if (left.startsWith("0") && (left.length() > 1)) {
           // if there's padding in left, we need make sure left and right has same length
           if (left.length() != right.length()) {
-            throw new IOException(String.format("there's padding in left, so you need make sure left:[%s] and right:[%s] has same length", left, right));
+            throw new HamsterCliParseException(String.format("there's padding in left, so you need make sure left:[%s] and right:[%s] has same length", left, right));
           }
           
           // do it in padding way
@@ -127,7 +127,7 @@ public class HostExprParser {
    * parse host expr to comma ',' splitted host list, without spaces in output 
    * @throws IOException
    */
-  public static String parse(String hostExpr) throws IOException {
+  public static String parse(String hostExpr) throws HamsterCliParseException {
     int l = 0;
     int r = 0;
     List<Node> nodes = new ArrayList<Node>();
@@ -138,12 +138,12 @@ public class HostExprParser {
         r = hostExpr.indexOf(']', l);
         if (r == -1) {
           // report error
-          throw new IOException("square brackets mismatch!");
+          throw new HamsterCliParseException("square brackets mismatch!");
         } else {
           // we need check if there's any ']' before ']' occurs
           int tmp = hostExpr.indexOf('[', l + 1);
           if (tmp > 0 && tmp < r) {
-            throw new IOException("square brackets mismatch");
+            throw new HamsterCliParseException("square brackets mismatch");
           }
         }
         
@@ -163,7 +163,7 @@ public class HostExprParser {
           // no more expr(s)
           // we will double check if there's ']'
           if (hostExpr.indexOf(']', l) >= 0) {
-            throw new IOException("square brackets mismatch");
+            throw new HamsterCliParseException("square brackets mismatch");
           }
           
           // just treat the following text are plain text
@@ -177,7 +177,7 @@ public class HostExprParser {
           l = hostExpr.indexOf('[', l);
         }
       } else {
-        throw new IOException("square brackets mismatch");
+        throw new HamsterCliParseException("square brackets mismatch");
       }
     }
     
