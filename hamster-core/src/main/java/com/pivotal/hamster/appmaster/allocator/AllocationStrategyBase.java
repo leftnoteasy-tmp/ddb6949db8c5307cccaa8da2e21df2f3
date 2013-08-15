@@ -118,6 +118,10 @@ abstract public class AllocationStrategyBase implements AllocationStrategy {
       int newSlots = makeRemoteRequest(askList);
       m += newSlots;
       
+      if (newSlots > 0) {
+        LOG.info(String.format("get %d new slots from RM, now we have %d", newSlots, m));
+      }
+      
       round++;
       
       // sleep for a while before next ask
@@ -215,7 +219,7 @@ abstract public class AllocationStrategyBase implements AllocationStrategy {
                   + containerList.size());
         }
         
-        if (entry.getValue() == 0) {
+        if (HamsterAppMasterUtils.isLocalHost(entry.getKey()) || (entry.getValue() == 0)) {
           total += containerList.size();
         } else {
           total += containerList.size() - 1;
@@ -230,7 +234,7 @@ abstract public class AllocationStrategyBase implements AllocationStrategy {
     }
     
     if (total != n) {
-      throw new HamsterException("the final containers in resilt for MPI proc not equals to n");
+      throw new HamsterException("the final containers in resilt for MPI proc not equals to n, get " + total + " containers");
     }
     
     return result;
@@ -262,12 +266,14 @@ abstract public class AllocationStrategyBase implements AllocationStrategy {
       // get container list of this host or create a new list
       List<Container> containerList;
       if (hostToId.containsKey(host)) {
+        LOG.info(String.format("insert container to host=%s, id=%d", host, hostToId.get(host)));
         containerList = hostIdToContainers.get(hostToId.get(host));
         if (containerList == null) {
           containerList = new ArrayList<Container>();
           hostIdToContainers.put(hostToId.get(host), containerList);
         }
       } else {
+        LOG.info(String.format("insert container to host=%s, id=%d", host, nHosts));
         hostToId.put(host, nHosts);
         containerList = new ArrayList<Container>();
         hostIdToContainers.put(nHosts, containerList);

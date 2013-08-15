@@ -59,6 +59,10 @@ public class NpProcessor implements CliProcessor {
     }
     
     if (np <= 0) {
+      if (np == Integer.MIN_VALUE) {
+        LOG.error("np not specified");
+        throw new HamsterCliParseException("np not specified");
+      }
       LOG.error(String.format("specified np=%d <= 0,", np));
       throw new HamsterCliParseException(String.format("specified np=%d <= 0,", np));
     }

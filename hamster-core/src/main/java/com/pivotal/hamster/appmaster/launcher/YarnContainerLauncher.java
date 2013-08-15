@@ -32,6 +32,7 @@ import org.apache.hadoop.yarn.api.records.ContainerLaunchContext;
 import org.apache.hadoop.yarn.api.records.ContainerToken;
 import org.apache.hadoop.yarn.api.records.LocalResource;
 import org.apache.hadoop.yarn.api.records.impl.pb.LocalResourcePBImpl;
+import org.apache.hadoop.yarn.conf.YarnConfiguration;
 import org.apache.hadoop.yarn.event.Dispatcher;
 import org.apache.hadoop.yarn.factories.RecordFactory;
 import org.apache.hadoop.yarn.factory.providers.RecordFactoryProvider;
@@ -100,6 +101,14 @@ public class YarnContainerLauncher extends ContainerLauncher {
       return !launchFailed;
     }
     
+    void addEnvs(ContainerLaunchContext ctx) {
+      Map<String, String> envs = ctx.getEnvironment();
+      if (conf.get(YarnConfiguration.NM_LOCAL_DIRS) != null) {
+        envs.put("YARN_NM_LOCAL_DIRS", conf.get(YarnConfiguration.NM_LOCAL_DIRS,
+            YarnConfiguration.DEFAULT_NM_LOCAL_DIRS));
+      }
+    }
+    
     StartContainerRequest createStartContainerRequest(LaunchContext ctx) {
       StartContainerRequest request = recordFactory.newRecordInstance(StartContainerRequest.class);
       
@@ -118,6 +127,7 @@ public class YarnContainerLauncher extends ContainerLauncher {
       
       // set environment
       launchCtx.setEnvironment(ctx.getEnvars());
+      addEnvs(launchCtx);
       
       // set local resource
       launchCtx.setLocalResources(localResources);

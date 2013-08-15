@@ -209,6 +209,7 @@ public class HamsterParamBuilder {
       mcaParams.put("ras", "yarn");
       mcaParams.put("plm", "yarn");
       mcaParams.put("odls", "yarn");
+      mcaParams.put("state", "yarn");
       
       // append mca parameters
       for (Entry<String, String> e : mcaParams.entrySet()) {

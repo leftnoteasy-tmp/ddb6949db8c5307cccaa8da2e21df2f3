@@ -48,27 +48,39 @@ public class YarnExecutor {
     return envs.toArray(new String[0]);
   }
   
-  String createPidFile(String jobId, String vpId, boolean failed) throws IOException {
-    String pidRoot = System.getenv("HAMSTER_PID_ROOT");
-    if (null == pidRoot) {
-      pidRoot = "/tmp/hamster-pid";
-    }
-    pidRoot = pidRoot + "/" + jobId;
+  File getPidRoot(String jobId) throws IOException {
+    String localDirs = System.getenv("YARN_NM_LOCAL_DIRS");
     
-    // make the root directory
-    File dir = new File(pidRoot);
-    if (dir.isFile()) {
-      dir.delete();
+    // if no such env set, just return
+    if (null == localDirs || localDirs.isEmpty()) {
+      return new File("../" + jobId);
     }
-    dir.mkdirs();
+    
+    // consist the rest parts of app and check which contains the jobId file
+    String restPart = "usercache/root/appcache/" + (new File("../").getName()) + "/" + jobId;
+    for (String dir : localDirs.trim().split(",")) {
+      String wholePath = dir + "/" + restPart;
+      File pidRootFile = new File(wholePath);
+      if (pidRootFile.exists() && pidRootFile.isDirectory()) {
+        return pidRootFile;
+      }
+    }
+    
+    System.err.println("cannot find proper pidRoot, restPart:" + restPart + " dirs:" + localDirs);
+    return null;
+  }
+  
+  String createPidFile(String jobId, String vpId, boolean failed) throws IOException {
+    // get pid root
+    File pidRoot = getPidRoot(jobId);
     
     // see if dir created
-    if (dir.exists() && dir.isDirectory()) {
+    if ((null != pidRoot) && pidRoot.exists() && pidRoot.isDirectory()) {
       File pidFile;
       if (failed) {
-        pidFile = new File(dir, vpId + "_err");
+        pidFile = new File(pidRoot, vpId + "_err");
       } else {
-        pidFile = new File(dir, vpId);
+        pidFile = new File(pidRoot, vpId);
       }
       
       // clean pidFile if it exists

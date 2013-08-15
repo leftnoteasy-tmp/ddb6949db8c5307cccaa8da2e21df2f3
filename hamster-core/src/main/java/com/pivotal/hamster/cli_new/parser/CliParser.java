@@ -55,7 +55,7 @@ public class CliParser {
             addOption(new Option("do-not-launch", "do-not-launch", false, "")).
             addOption(new Option("do-not-resolve", "do-not-resolve", false, "")).
             addOption(new Option("enable-recovery", "enable-recovery", false, "")).
-            addOption(new Option("h", "--help", false, "")).
+            addOption(new Option("h", "help", false, "")).
             addOption(new Option("H", true, "")).
             addOption(new Option("host", "host", true, "")).
             addOption(new Option("hetero-apps", "hetero-apps", false, "")).
