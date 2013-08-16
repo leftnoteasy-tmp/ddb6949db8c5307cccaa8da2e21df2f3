@@ -5,8 +5,9 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
 
-import org.apache.commons.cli.Option;
 import org.apache.commons.lang.StringUtils;
+
+import com.pivotal.hamster.commons.cli.Option;
 
 public class CliUtils {
   public static boolean containsOption(String opName, List<Option> options) {

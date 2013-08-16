@@ -3,7 +3,6 @@ package com.pivotal.hamster.cli_new.processor;
 import java.io.File;
 import java.util.List;
 
-import org.apache.commons.cli.Option;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 
@@ -12,6 +11,7 @@ import com.pivotal.hamster.cli_new.utils.CliUtils;
 import com.pivotal.hamster.common.HamsterCliParseException;
 import com.pivotal.hamster.common.HamsterConfig;
 import com.pivotal.hamster.common.HamsterException;
+import com.pivotal.hamster.commons.cli.Option;
 
 public class PrefixProcessor implements CliProcessor {
   private static final Log LOG = LogFactory.getLog(PrefixProcessor.class);

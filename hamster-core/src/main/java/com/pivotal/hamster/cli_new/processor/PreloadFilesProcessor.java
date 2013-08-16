@@ -3,12 +3,12 @@ package com.pivotal.hamster.cli_new.processor;
 import java.util.ArrayList;
 import java.util.List;
 
-import org.apache.commons.cli.Option;
 import org.apache.commons.lang.StringUtils;
 
 import com.pivotal.hamster.cli_new.AppLaunchContext;
 import com.pivotal.hamster.cli_new.utils.CliUtils;
 import com.pivotal.hamster.common.HamsterException;
+import com.pivotal.hamster.commons.cli.Option;
 
 public class PreloadFilesProcessor implements CliProcessor {
 

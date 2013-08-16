@@ -3,8 +3,8 @@ package com.pivotal.hamster.cli_new;
 import java.util.ArrayList;
 import java.util.List;
 
-import org.apache.commons.cli.CommandLine;
-import org.apache.commons.cli.Option;
+import com.pivotal.hamster.commons.cli.CommandLine;
+import com.pivotal.hamster.commons.cli.Option;
 
 /**
  * CommandLine object for processing, I wrote this because the CommandLine in

@@ -1,11 +1,11 @@
 package com.pivotal.hamster.cli_new.parser;
 
-import org.apache.commons.cli.CommandLine;
-import org.apache.commons.cli.CommandLineParser;
-import org.apache.commons.cli.GnuParser;
-import org.apache.commons.cli.Option;
-import org.apache.commons.cli.Options;
-import org.apache.commons.cli.ParseException;
+import com.pivotal.hamster.commons.cli.CommandLine;
+import com.pivotal.hamster.commons.cli.CommandLineParser;
+import com.pivotal.hamster.commons.cli.GnuParser;
+import com.pivotal.hamster.commons.cli.Option;
+import com.pivotal.hamster.commons.cli.Options;
+import com.pivotal.hamster.commons.cli.ParseException;
 
 public class CliParser {
   Options options;

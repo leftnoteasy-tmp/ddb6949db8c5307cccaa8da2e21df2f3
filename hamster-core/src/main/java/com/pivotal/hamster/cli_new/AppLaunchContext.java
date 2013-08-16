@@ -5,7 +5,6 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
-
 public class AppLaunchContext {
   /* comma splitted hosts */
   String hosts;

@@ -4,12 +4,12 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
 
-import org.apache.commons.cli.Option;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 
 import com.pivotal.hamster.cli_new.AppLaunchContext;
 import com.pivotal.hamster.common.HamsterException;
+import com.pivotal.hamster.commons.cli.Option;
 
 /**
  * Handle options not-applicable, we will give a warn message to user and ignore such options

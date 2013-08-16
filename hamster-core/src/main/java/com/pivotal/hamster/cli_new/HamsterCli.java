@@ -17,10 +17,6 @@ import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
 
-import org.apache.commons.cli.CommandLine;
-import org.apache.commons.cli.HelpFormatter;
-import org.apache.commons.cli.Option;
-import org.apache.commons.cli.ParseException;
 import org.apache.commons.lang.StringUtils;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
@@ -70,6 +66,10 @@ import com.pivotal.hamster.cli_new.processor.PreloadFilesProcessor;
 import com.pivotal.hamster.cli_new.processor.VerboseProcessor;
 import com.pivotal.hamster.common.HamsterConfig;
 import com.pivotal.hamster.common.HamsterException;
+import com.pivotal.hamster.commons.cli.CommandLine;
+import com.pivotal.hamster.commons.cli.HelpFormatter;
+import com.pivotal.hamster.commons.cli.Option;
+import com.pivotal.hamster.commons.cli.ParseException;
 import com.pivotal.hamster.yarnexecutor.YarnExecutor;
 
 public class HamsterCli {

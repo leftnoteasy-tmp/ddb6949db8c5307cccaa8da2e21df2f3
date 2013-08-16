@@ -2,10 +2,10 @@ package com.pivotal.hamster.cli_new.processor;
 
 import java.util.List;
 
-import org.apache.commons.cli.Option;
 
 import com.pivotal.hamster.cli_new.AppLaunchContext;
 import com.pivotal.hamster.common.HamsterException;
+import com.pivotal.hamster.commons.cli.Option;
 
 public interface CliProcessor {
   /**
