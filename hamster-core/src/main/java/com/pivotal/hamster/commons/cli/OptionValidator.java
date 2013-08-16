@@ -96,6 +96,6 @@ class OptionValidator
      */
     private static boolean isValidChar(char c)
     {
-        return Character.isJavaIdentifierPart(c);
+        return Character.isJavaIdentifierPart(c) || ('-' == c);
     }
 }

@@ -36,6 +36,7 @@ public class NpProcessor implements CliProcessor {
         LOG.error("two options specified number of processors to run, but with different value");
         throw new HamsterCliParseException("two options specified number of processors to run, but with different value");
       }
+      np = value;
     }
     
     // check -np, --np
@@ -46,6 +47,7 @@ public class NpProcessor implements CliProcessor {
         LOG.error("two options specified number of processors to run, but with different value");
         throw new HamsterCliParseException("two options specified number of processors to run, but with different value");
       }
+      np = value;
     }
     
     // check -max-vm-size, --max-vm-size
@@ -56,6 +58,7 @@ public class NpProcessor implements CliProcessor {
         LOG.error("two options specified number of processors to run, but with different value");
         throw new HamsterCliParseException("two options specified number of processors to run, but with different value");
       }
+      np = value;
     }
     
     if (np <= 0) {

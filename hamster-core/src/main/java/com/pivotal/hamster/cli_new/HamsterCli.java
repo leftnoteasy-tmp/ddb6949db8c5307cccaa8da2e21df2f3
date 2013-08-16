@@ -46,6 +46,7 @@ import org.apache.hadoop.yarn.api.records.impl.pb.LocalResourcePBImpl;
 import org.apache.hadoop.yarn.conf.YarnConfiguration;
 import org.apache.hadoop.yarn.exceptions.YarnRemoteException;
 import org.apache.hadoop.yarn.factories.RecordFactory;
+import org.apache.hadoop.yarn.factory.providers.RecordFactoryProvider;
 import org.apache.hadoop.yarn.ipc.YarnRPC;
 import org.apache.hadoop.yarn.util.ConverterUtils;
 
@@ -87,6 +88,7 @@ public class HamsterCli {
   public HamsterCli() {
     context = new AppLaunchContext();
     this.conf = new YarnConfiguration();
+    recordFactory = RecordFactoryProvider.getRecordFactory(null);
     initialize();
   }
   
@@ -367,13 +369,11 @@ public class HamsterCli {
       isUserDefinedPolicy = true;
     }
     
-    // try to dump mproc and mnode
-    if (context.getMaxPpn() > 0) {
+    // try to dump max-ppn
+    if (context.getMaxPpn() > 0 && context.getMaxPpn() != Integer.MAX_VALUE) {
       conf.setInt(HamsterConfig.USER_POLICY_MPROC_KEY, context.getMaxPpn());
       isUserDefinedPolicy = true;
     }
-    
-    // NOTE, if add more user defined policy parameter, need add here also
     
     // set allocation strategy used by AM
     if (isUserDefinedPolicy) {
@@ -451,6 +451,8 @@ public class HamsterCli {
     
     List<String> fileList = context.getFiles();
     List<String> archiveList = context.getArchives();
+    
+    LOG.info("fileList.size:" + fileList.size() + " archiveList.size:" + archiveList.size());
     
     //upload a placeholder
     if (0 == fileList.size() && 0 == archiveList.size()) {
@@ -623,14 +625,14 @@ public class HamsterCli {
      */
     for (Option op : options) {
       if (StringUtils.equals(op.getOpt(), "mca") || StringUtils.equals(op.getOpt(), "gmca")) {
-        userParams.add(op.getOpt());
+        userParams.add("-" + op.getOpt());
         userParams.add(op.getValues()[0]);
         userParams.add(op.getValues()[1]);
       } else {
         if (op.hasLongOpt()) {
-          userParams.add(op.getLongOpt());
+          userParams.add("--" + op.getLongOpt());
         } else {
-          userParams.add(op.getOpt());
+          userParams.add("-" + op.getOpt());
         }
         if (op.hasArg()) {
           userParams.add(op.getValue());
@@ -685,16 +687,24 @@ public class HamsterCli {
       context.appendEnv("CLASSPATH", cp);
     }
     context.appendEnv("CLASSPATH", "hamster-core.jar");
-    context.appendEnv("CLASSPATH", "$CLASSPATH");
   }
   
   void setContainerCtxEnvs(ContainerLaunchContext ctx) throws IOException {
     context.appendEnv("PATH", "./");
+    if (System.getenv("PATH") != null) {
+      context.appendEnv("PATH", System.getenv("PATH"));
+    }
     context.appendEnv("PATH", "$PATH");
     context.appendEnv("LD_LIBRARY_PATH", "./");
+    if (System.getenv("LD_LIBRARY_PATH") != null) {
+      context.appendEnv("LD_LIBRARY_PATH",  System.getenv("LD_LIBRARY_PATH"));
+    }
     context.appendEnv("LD_LIBRARY_PATH", "$LD_LIBRARY_PATH");
     context.appendEnv("DYLD_LIBRARY_PATH", "./");
-    context.appendEnv("DYLD_LIBRARY_PATH", "DYLD_LIBRARY_PATh");
+    if (System.getenv("DYLD_LIBRARY_PATH") != null) {
+      context.appendEnv("DYLD_LIBRARY_PATH", System.getenv("DYLD_LIBRARY_PATH"));
+    }
+    context.appendEnv("DYLD_LIBRARY_PATH", "DYLD_LIBRARY_PATH");
     
     // add debug envs
     if (context.getVerbose() || context.getDebug()) {

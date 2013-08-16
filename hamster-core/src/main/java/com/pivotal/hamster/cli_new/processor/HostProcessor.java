@@ -54,26 +54,38 @@ public class HostProcessor implements CliProcessor {
     }
   }
   
+  boolean hasHostSpecified(List<Option> options) {
+    return CliUtils.containsOption("host", options) || CliUtils.containsOption("H", options);
+  }
+  
+  boolean hasHostFileSpecified(List<Option> options) {
+    return CliUtils.containsOption("hostfile", options) || CliUtils.containsOption("machinefile", options);
+  }
+  
+  boolean hasDefaultHostFileSpecified(List<Option> options) {
+    return CliUtils.containsOption("default-hostfile", options);
+  }
+  
   @Override
   public ProcessResultType process(List<Option> options,
       AppLaunchContext context) throws HamsterException {
-    boolean useDefaultHost = false;
+    boolean useDefaultHostFile = false;
     List<Option> newOptions = CliUtils.removeOptions(new String[] { "host",
         "H", "hostfile", "machinefile", "default-hostfile" }, options);
-
-    // first we need to check if -default-host specified and -host or -hostlist not specified
-    if (CliUtils.containsOption("default-hostfile", options)) {
-      useDefaultHost = true;
-      if (CliUtils.containsOption("host", options)
-          || CliUtils.containsOption("H", options)
-          || CliUtils.containsOption("hostfile", options)
-          || CliUtils.containsOption("machinefile", options)) {
-        // we need ignore the default-hostfile because host specified
-        useDefaultHost = false;
-      }
+    
+    boolean hostSpecified = hasHostSpecified(options);
+    boolean hostFileSpecified = hasHostFileSpecified(options);
+    boolean defaultHostFileSpecified = hasDefaultHostFileSpecified(options);
+    
+    // do we have any host specification?
+    if ((!hostSpecified) && (!hostFileSpecified) && (!defaultHostFileSpecified)) {
+      // do nothing, just return
+      return ProcessResultType.SUCCEED;
     }
     
-    if (useDefaultHost) {
+    // do we need default hostfile?
+    useDefaultHostFile = defaultHostFileSpecified && (!hostSpecified) && (!hostFileSpecified); 
+    if (useDefaultHostFile) {
       Option defaultHostfileOption = CliUtils.getOption("default-hostfile", options);
       String hosts = readHostFile(defaultHostfileOption.getValue());
       context.setHosts(hosts);
@@ -81,30 +93,34 @@ public class HostProcessor implements CliProcessor {
       return ProcessResultType.SUCCEED;
     }
     
-    String hostfile = null;
-    
     // we need check if -host/-H and hostfile/machine file specified at the same time
-    if ((CliUtils.containsOption("host", options) || CliUtils.containsOption("H", options))
-        && (CliUtils.containsOption("hostfile", options) || CliUtils.containsOption("machinefile", options))) {
+    if (hostSpecified && hostFileSpecified) {
       LOG.error("you specified host and hostfile at the same time, please check.");
       throw new HamsterCliParseException("you specified host and hostfile at the same time, please check.");
     }
-    
-    // we need check if multiple hostfile/machine file specified
-    int hostfileCount = 0;
-    for (Option op : options) {
-      if (StringUtils.equals(op.getOpt(), "hostfile") || (StringUtils.equals(op.getOpt(), "machinefile"))) {
-        hostfile = op.getValue();
-        hostfileCount++;
+
+    // we need process host/hostfile specification
+    if (hostFileSpecified) {
+      // process hostfile specified
+      String hostfile = null;
+      
+      // we need check if multiple hostfile/machine file specified
+      int hostfileCount = 0;
+      for (Option op : options) {
+        if (StringUtils.equals(op.getOpt(), "hostfile") || (StringUtils.equals(op.getOpt(), "machinefile"))) {
+          hostfile = op.getValue();
+          hostfileCount++;
+        }
       }
-    }
-    if (hostfileCount > 1) {
-      LOG.error("more than one hostfile specified, which is not supported");
-      throw new HamsterCliParseException("more than one hostfile specified, which is not supported");
-    }
-    
-    if (hostfileCount == 0) {
-      // check if we need parse host
+      if (hostfileCount > 1) {
+        LOG.error("more than one hostfile specified, which is not supported");
+        throw new HamsterCliParseException("more than one hostfile specified, which is not supported");
+      }
+      
+      String hosts = readHostFile(hostfile);
+      context.setHosts(hosts);
+    } else {
+      // process host specified
       int hostCount = 0;
       String hostExpr = null;
       for (Option op : options) {
@@ -121,9 +137,6 @@ public class HostProcessor implements CliProcessor {
       
       // use our tool to expand the expression
       String hosts = HostExprParser.parse(hostExpr);
-      context.setHosts(hosts);
-    } else {
-      String hosts = readHostFile(hostfile);
       context.setHosts(hosts);
     }
     

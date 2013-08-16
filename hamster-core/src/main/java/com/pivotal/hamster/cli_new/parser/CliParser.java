@@ -132,6 +132,6 @@ public class CliParser {
             addOption(new Option("min-proc", "min-proc", true, "")).
             addOption(new Option("max-ppn", "max-proc-per-node", true, "")).
             addOption(new Option("min-ppn", "min-proc-per-node", true, "")).
-            addOption(new Option("max-at", "max-allocation-time", true, ""));
+            addOption(new Option("max-alloc", "max-allocation-time", true, ""));
   }
 }
