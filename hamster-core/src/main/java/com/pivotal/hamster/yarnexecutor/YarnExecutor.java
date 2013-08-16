@@ -48,6 +48,14 @@ public class YarnExecutor {
     return envs.toArray(new String[0]);
   }
   
+  String getApplicationIdFromPath() throws IOException {
+    return new File(new File("../").getCanonicalPath()).getName();
+  }
+  
+  String getUserNameFromPath() throws IOException {
+    return new File(new File("../../../").getCanonicalPath()).getName();
+  }
+  
   File getPidRoot(String jobId) throws IOException {
     String localDirs = System.getenv("YARN_NM_LOCAL_DIRS");
     
@@ -57,7 +65,9 @@ public class YarnExecutor {
     }
     
     // consist the rest parts of app and check which contains the jobId file
-    String restPart = "usercache/root/appcache/" + (new File("../").getName()) + "/" + jobId;
+    String userName = getUserNameFromPath();
+    String applicationId = getApplicationIdFromPath();
+    String restPart = String.format("usercache/%s/appcache/%s/%s", userName, applicationId, jobId);
     for (String dir : localDirs.trim().split(",")) {
       String wholePath = dir + "/" + restPart;
       File pidRootFile = new File(wholePath);
@@ -95,7 +105,7 @@ public class YarnExecutor {
       
       return pidFile.getAbsolutePath();
     } else {
-      throw new IOException("create father directory for pid file failed, path:" + pidRoot);
+      throw new IOException("get father directory for pid file failed, path:" + pidRoot);
     }
   }
   
