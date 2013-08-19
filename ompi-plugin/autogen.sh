@@ -1486,13 +1486,14 @@ if test "x$config" = "x" -o ! -f "$config" ; then
     $ECHO "misconfiguration."
 else
 	ompi_version=$(mpirun --version 2>&1|head -1|cut -d' ' -f4)
+	$ECHO "-------------------------------------------"
 	$ECHO "OpenMPI $ompi_version is installed on your system."
 	if [ "x$ompi_version" != "x1.7.2" -a "x$ompi_version" != "x1.6.4" ]; then
-		$ECHO "Sorry, currently Hamster supports only OpenMPI-1.6.4 and OpenMPI-1.7.2"
+		$ECHO "Sorry, currently Hamster supports only OpenMPI-1.6.4 and OpenMPI-1.7.2, please check!"
 	else 
     	$ECHO "The $PROJECT build system is now prepared.  To build here, run:"
-    	short_ompi_version=$(echo $ompi_version|sed 's/\.//g')
-		$ECHO "  $config --prefix=/where/open-mpi/installed --with-ompi${short_ompi_version}"
+    	#short_ompi_version=$(echo $ompi_version|sed 's/\.//g')
+		$ECHO "  $config --prefix=/where/open-mpi/installed --with-ompi=${ompi_version}"
     	$ECHO "  make"
     fi
 fi
