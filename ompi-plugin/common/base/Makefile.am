@@ -8,6 +8,7 @@
 #
 
 headers += \
+	base/hdclient-constants.h \
 	base/net_utils.h \
 	base/str_utils.h \
 	base/pbc/pbc.h \
