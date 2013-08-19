@@ -397,6 +397,15 @@ public class HamsterCli {
   	// serialize conf for AM
   	serializeLocalConfToFile(localResources, fs, appUploadPath);
   	
+    // debug
+    for (Entry<String, LocalResource> e : localResources.entrySet()) {
+      LOG.info("key:" + e.getKey() + " value:"
+          + e.getValue().getResource().toString() + " len:"
+          + e.getValue().getSize() + " ts:" + e.getValue().getTimestamp()
+          + " vis:" + e.getValue().getVisibility().name() + " type:"
+          + e.getValue().getType().name());
+    }
+  	
   	ctx.setLocalResources(localResources);
   }
   
@@ -576,6 +585,9 @@ public class HamsterCli {
     
     // set container launch context to app context
     val.setAMContainerSpec(ctx);
+    
+    // debug
+    LOG.info("ASC:" + val.toString());
    
     return val;
   }

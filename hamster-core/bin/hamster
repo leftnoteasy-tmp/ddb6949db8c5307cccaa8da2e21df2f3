@@ -6,4 +6,5 @@ CLASSPATH=$HADOOP_CONF_DIR:$YARN_CONF_DIR:$HDFS_CONF_DIR:$HAMSTER_CORE_HOME/lib/
 echo "Starting submit YARN job"
 echo "CLASSPATH:$CLASSPATH"
 
-java $JAVA_OPTS -cp $CLASSPATH com.pivotal.hamster.cli.HamsterCli $PARAMS
+java $JAVA_OPTS -cp $CLASSPATH com.pivotal.hamster.cli_new.HamsterCli $PARAMS
+#java $JAVA_OPTS -cp $CLASSPATH com.pivotal.hamster.cli.HamsterCli $PARAMS
