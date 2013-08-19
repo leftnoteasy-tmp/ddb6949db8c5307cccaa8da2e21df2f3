@@ -16,7 +16,8 @@ public interface CliProcessor {
    */
   public static enum ProcessResultType {
     SUCCEED,
-    HELP_TERMINATED
+    HELP_TERMINATED, 
+    VERSION_TERMINATED
   }
   
   /**

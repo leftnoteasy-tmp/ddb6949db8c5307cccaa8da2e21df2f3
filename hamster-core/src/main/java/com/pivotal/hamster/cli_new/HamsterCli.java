@@ -65,6 +65,7 @@ import com.pivotal.hamster.cli_new.processor.PathProcessor;
 import com.pivotal.hamster.cli_new.processor.PrefixProcessor;
 import com.pivotal.hamster.cli_new.processor.PreloadFilesProcessor;
 import com.pivotal.hamster.cli_new.processor.VerboseProcessor;
+import com.pivotal.hamster.cli_new.processor.VersionProcessor;
 import com.pivotal.hamster.common.HamsterConfig;
 import com.pivotal.hamster.common.HamsterException;
 import com.pivotal.hamster.commons.cli.CommandLine;
@@ -97,6 +98,7 @@ public class HamsterCli {
     
     // add cliProcessors
     cliProcessors.add(new HelpProcessor());
+    cliProcessors.add(new VersionProcessor());
     cliProcessors.add(new VerboseProcessor());
     cliProcessors.add(new DebugProcessor());
     cliProcessors.add(new NotSupportedOptionsProcessor());
@@ -140,7 +142,11 @@ public class HamsterCli {
       // if show help
       if (ProcessResultType.HELP_TERMINATED == resultType) {
         HelpFormatter formatter = new HelpFormatter();
+        formatter.setDescPadding(formatter.getWidth());
         formatter.printHelp("hamster", parser.getOptions());
+        break;
+      } else if (ProcessResultType.VERSION_TERMINATED == resultType) {
+        System.out.println("Hamster version: 0.8");
         break;
       }
     }
@@ -354,6 +360,8 @@ public class HamsterCli {
     
     // add this to local-resource, but this file doesn't need to be added to serialized file
     resources.put(HamsterConfig.DEFAULT_LOCALRESOURCE_SERIALIZED_FILENAME, res);
+    
+    file.delete();
   }
   
   void dumpParamtersToConf() throws IOException {
@@ -411,6 +419,8 @@ public class HamsterCli {
     
     // add this to local-resource
     resources.put(HamsterConfig.DEFAULT_LOCALCONF_SERIALIZED_FILENAME, res);
+    
+    file.delete();
   }
   
   void setContainerCtxLocalResources(ContainerLaunchContext ctx) throws IOException {
@@ -832,7 +842,6 @@ public class HamsterCli {
 
   public static void main(String[] args) throws HamsterException,
       YarnRemoteException, ParseException, IOException, InterruptedException {
-    LOG.info("start submit job");
     HamsterCli cli = new HamsterCli();
     if (cli.processCli(args)) {
       cli.doSubmit();

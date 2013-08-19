@@ -837,7 +837,7 @@ public class HelpFormatter
             if (pos == -1)
             {
                 sb.append(text);
-
+                sb.append(defaultNewLine);
                 return sb;
             }
             
