@@ -43,6 +43,7 @@ public class PrefixProcessor implements CliProcessor {
       LOG.warn("cannot find mpirun in location:" + mpirunFile.getAbsolutePath()
           + ", but make sure open-mpi installed in all NMs in your cluster");
     }
+    context.setPrefix(prefix);
     
     // add to $PATH, $LIBRARY_PATH, $DYLD_LIBRARY_PATH
     context.appendEnv("PATH", new File(prefix, "bin").getAbsolutePath());
