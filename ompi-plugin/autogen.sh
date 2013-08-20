@@ -13,6 +13,11 @@ if [ "x$LIBTOOL_VERSION" = "x" ] ; then
     LIBTOOL_VERSION=2.4.2
 fi
 
+# set to minimum acceptable version of m4
+if [ "x$M4_VERSION" = "x" ] ; then
+    M4_VERSION=1.4.16
+fi
+
 
 ##################
 # ident function #
@@ -531,7 +536,6 @@ if [ "x$_report_error" = "xyes" ] ; then
     exit 1
 fi
 
-
 ########################
 # check for libtoolize #
 ########################
@@ -633,6 +637,38 @@ if [ "x$_report_error" = "xyes" ] ; then
     exit 1
 fi
 
+
+##########################
+# m4 version check #
+##########################
+_m4found=no
+M4=m4
+$M4 --version > /dev/null 2>&1
+if [ $?  = 0 ]; then
+	_m4found=yes
+fi
+
+_report_error=no
+if [ ! "x$_m4found" = "xyes" ] ; then
+    $ECHO
+    $ECHO "ERROR: Unable to locate GNU M4."
+    _report_error=yes
+else
+    _version=$($M4 --version|head -1|rev|cut -d' ' -f1|rev)
+    
+    if [ "x$_version" = "x" ] ; then
+	_version="0.0.0"
+    fi
+    $ECHO "Found GNU M4 version $_version"
+    version_check "$M4_VERSION" "$_version"
+    if [ $? -ne 0 ] ; then
+	_report_error=yes
+    fi
+fi
+if [ "x$_report_error" = "xyes" ] ; then
+    version_error "$M4_VERSION" "GNU M4"
+    exit 1
+fi
 
 #####################
 # check for aclocal #
@@ -1485,17 +1521,22 @@ if test "x$config" = "x" -o ! -f "$config" ; then
     $ECHO "with the --verbose option to get more details on a potential"
     $ECHO "misconfiguration."
 else
-	ompi_version=$(mpirun --version 2>&1|head -1|cut -d' ' -f4)
 	$ECHO "-------------------------------------------"
-	$ECHO "OpenMPI $ompi_version is installed on your system."
-	if [ "x$ompi_version" != "x1.7.2" -a "x$ompi_version" != "x1.6.4" ]; then
-		$ECHO "Sorry, currently Hamster supports only OpenMPI-1.6.4 and OpenMPI-1.7.2, please check!"
-	else 
-    	$ECHO "The $PROJECT build system is now prepared.  To build here, run:"
-    	#short_ompi_version=$(echo $ompi_version|sed 's/\.//g')
-		$ECHO "  $config --prefix=/where/open-mpi/installed --with-ompi=${ompi_version}"
-    	$ECHO "  make"
-    fi
+	$(mpirun --version >/dev/null 2&>1)
+	if [ $? -ne 0 ]; then
+		$ECHO "OpenMPI is not installed on your system, please check!"
+	else
+		ompi_version=$(mpirun --version 2>&1|head -1|cut -d' ' -f4)
+		$ECHO "OpenMPI $ompi_version is installed on your system."
+		if [ "x$ompi_version" != "x1.7.2" -a "x$ompi_version" != "x1.6.4" ]; then
+			$ECHO "Sorry, currently Hamster supports only OpenMPI-1.6.4 and OpenMPI-1.7.2, please check!"
+		else 
+    		$ECHO "The $PROJECT build system is now prepared.  To build here, run:"
+	    	#short_ompi_version=$(echo $ompi_version|sed 's/\.//g')
+			$ECHO "  $config --prefix=/where/open-mpi/installed --with-ompi=${ompi_version}"
+	    	$ECHO "  make"
+    	fi
+	fi
 fi
 
 #  	$ECHO "  $config --prefix=/where/open-mpi/installed --ompi-version=[OpenMPI Version, e.g., 1.7.2]"
