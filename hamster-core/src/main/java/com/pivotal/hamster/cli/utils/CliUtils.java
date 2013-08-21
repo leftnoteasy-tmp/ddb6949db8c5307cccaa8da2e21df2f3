@@ -1,4 +1,4 @@
-package com.pivotal.hamster.cli_new.utils;
+package com.pivotal.hamster.cli.utils;
 
 import java.util.ArrayList;
 import java.util.HashSet;

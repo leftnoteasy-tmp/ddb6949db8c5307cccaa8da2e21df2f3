@@ -1,4 +1,4 @@
-package com.pivotal.hamster.cli_new.processor;
+package com.pivotal.hamster.cli.processor;
 
 import java.io.File;
 import java.util.List;
@@ -6,8 +6,8 @@ import java.util.List;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 
-import com.pivotal.hamster.cli_new.AppLaunchContext;
-import com.pivotal.hamster.cli_new.utils.CliUtils;
+import com.pivotal.hamster.cli.AppLaunchContext;
+import com.pivotal.hamster.cli.utils.CliUtils;
 import com.pivotal.hamster.common.HamsterCliParseException;
 import com.pivotal.hamster.common.HamsterConfig;
 import com.pivotal.hamster.common.HamsterException;
@@ -47,7 +47,7 @@ public class PrefixProcessor implements CliProcessor {
     
     // add to $PATH, $LIBRARY_PATH, $DYLD_LIBRARY_PATH
     context.appendEnv("PATH", new File(prefix, "bin").getAbsolutePath());
-    context.appendEnv("LIBRARY_PATH", new File(prefix, "lib").getAbsolutePath());
+    context.appendEnv("LD_LIBRARY_PATH", new File(prefix, "lib").getAbsolutePath());
     context.appendEnv("DYLD_LIBRARY_PATH", new File(prefix, "lib").getAbsolutePath());
     
     // remove --prefix option, because we will manage this ourselves

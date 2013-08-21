@@ -23,8 +23,8 @@ import org.apache.hadoop.yarn.util.RackResolver;
 import org.junit.Before;
 import org.junit.Test;
 
-import com.pivotal.hamster.appmaster.common.MockContainer;
 import com.pivotal.hamster.appmaster.utils.HamsterAppMasterUtils;
+import com.pivotal.hamster.common.MockContainer;
 
 public class ProbabilityBasedAllocationStrategyTest {
   static int containerId = 1;

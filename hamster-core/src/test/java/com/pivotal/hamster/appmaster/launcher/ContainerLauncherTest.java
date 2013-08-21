@@ -5,6 +5,7 @@ import java.util.Map;
 
 import junit.framework.Assert;
 
+import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.yarn.YarnException;
 import org.apache.hadoop.yarn.api.ContainerManager;
 import org.apache.hadoop.yarn.api.protocolrecords.GetContainerStatusRequest;
@@ -22,10 +23,10 @@ import org.apache.hadoop.yarn.factories.RecordFactory;
 import org.apache.hadoop.yarn.factory.providers.RecordFactoryProvider;
 import org.junit.Test;
 
-import com.pivotal.hamster.appmaster.common.MockContainer;
 import com.pivotal.hamster.appmaster.ut.MockDispatcher;
 import com.pivotal.hamster.appmaster.ut.UTUtils;
 import com.pivotal.hamster.common.LaunchContext;
+import com.pivotal.hamster.common.MockContainer;
 import com.pivotal.hamster.common.ProcessName;
 
 public class ContainerLauncherTest {
@@ -101,6 +102,7 @@ public class ContainerLauncherTest {
   public void testContainerLauncher() {
     MockDispatcher dispatcher = new MockDispatcher();
     ContainerLauncherUT launcher = new ContainerLauncherUT(dispatcher);
+    launcher.conf = new Configuration();
     
     // mock launch context
     LaunchContext[] ctx = new LaunchContext[1024];

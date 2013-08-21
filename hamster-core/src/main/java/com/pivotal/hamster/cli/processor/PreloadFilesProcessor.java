@@ -1,12 +1,12 @@
-package com.pivotal.hamster.cli_new.processor;
+package com.pivotal.hamster.cli.processor;
 
 import java.util.ArrayList;
 import java.util.List;
 
 import org.apache.commons.lang.StringUtils;
 
-import com.pivotal.hamster.cli_new.AppLaunchContext;
-import com.pivotal.hamster.cli_new.utils.CliUtils;
+import com.pivotal.hamster.cli.AppLaunchContext;
+import com.pivotal.hamster.cli.utils.CliUtils;
 import com.pivotal.hamster.common.HamsterException;
 import com.pivotal.hamster.commons.cli.Option;
 

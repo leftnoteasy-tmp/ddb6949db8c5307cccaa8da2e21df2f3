@@ -1,9 +1,9 @@
-package com.pivotal.hamster.cli_new.processor;
+package com.pivotal.hamster.cli.processor;
 
 import java.util.List;
 
 
-import com.pivotal.hamster.cli_new.AppLaunchContext;
+import com.pivotal.hamster.cli.AppLaunchContext;
 import com.pivotal.hamster.common.HamsterException;
 import com.pivotal.hamster.commons.cli.Option;
 

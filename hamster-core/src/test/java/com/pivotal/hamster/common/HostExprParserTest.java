@@ -1,4 +1,4 @@
-package com.pivotal.hamster.appmaster.common;
+package com.pivotal.hamster.common;
 
 import java.io.IOException;
 import java.util.HashSet;

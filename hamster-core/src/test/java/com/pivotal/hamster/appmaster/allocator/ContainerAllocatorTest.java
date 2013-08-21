@@ -26,9 +26,9 @@ import org.junit.Assert;
 import org.junit.Test;
 
 import com.pivotal.hamster.appmaster.clientserivce.MockClientService;
-import com.pivotal.hamster.appmaster.common.MockContainer;
 import com.pivotal.hamster.appmaster.ut.MockDispatcher;
 import com.pivotal.hamster.common.HamsterContainer;
+import com.pivotal.hamster.common.MockContainer;
 
 public class ContainerAllocatorTest {
   private final RecordFactory recordFactory =
