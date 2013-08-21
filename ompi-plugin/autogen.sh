@@ -1522,7 +1522,7 @@ if test "x$config" = "x" -o ! -f "$config" ; then
     $ECHO "misconfiguration."
 else
 	$ECHO "-------------------------------------------"
-	$(mpirun --version >/dev/null 2&>1)
+	$(mpirun --version >/dev/null 2>&1)
 	if [ $? -ne 0 ]; then
 		$ECHO "OpenMPI is not installed on your system, please check!"
 	else

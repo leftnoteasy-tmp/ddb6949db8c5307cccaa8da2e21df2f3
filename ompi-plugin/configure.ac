@@ -3,7 +3,7 @@
 
 AC_PREREQ([2.69])
 AC_INIT([ompi-plugin], [0.8], [])
-AC_CONFIG_SRCDIR([v1.6/orte/mca/odls/yarn/odls_yarn.h])
+AC_CONFIG_SRCDIR([common/hdclient.h])
 AC_CONFIG_HEADERS([config.h])
 AC_CONFIG_AUX_DIR([config])
 AC_CONFIG_MACRO_DIR([m4])
