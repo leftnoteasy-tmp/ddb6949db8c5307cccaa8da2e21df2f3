@@ -6,8 +6,10 @@ sources = \
         state_yarn_component.c \
         state_yarn.c
 
+#libdir=$(prefix)/lib64
 mcacomponentdir = $(libdir)/openmpi
 mcacomponent_LTLIBRARIES = mca_state_yarn.la
 mca_state_yarn_la_SOURCES = $(sources) 
-mca_state_yarn_la_LIBADD = $(prefix)/lib/libopen-rte.la
+#mca_state_yarn_la_LIBADD = $(prefix)/lib64/libopen-rte.la
+mca_state_yarn_la_LIBADD = $(libdir)/libopen-rte.la
 mca_state_yarn_la_LDFLAGS = -module -avoid-version

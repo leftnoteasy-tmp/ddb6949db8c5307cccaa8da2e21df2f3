@@ -1,4 +1,6 @@
 AM_CPPFLAGS = -I$(prefix)/include/openmpi
+#installdirs = $(prefix)/lib64
+installdirs = $(libdir)
 
 # main library setup
 #-----------------
