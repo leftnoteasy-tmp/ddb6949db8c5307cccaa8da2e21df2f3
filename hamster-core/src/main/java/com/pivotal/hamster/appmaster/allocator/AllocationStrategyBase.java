@@ -2,6 +2,8 @@ package com.pivotal.hamster.appmaster.allocator;
 
 import java.net.UnknownHostException;
 import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.Comparator;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -118,7 +120,7 @@ abstract public class AllocationStrategyBase implements AllocationStrategy {
       int newSlots = makeRemoteRequest(askList);
       m += newSlots;
       
-      if (newSlots > 0) {
+      if (newSlots > 0 && verbose) {
         LOG.info(String.format("get %d new slots from RM, now we have %d", newSlots, m));
       }
       
@@ -128,13 +130,18 @@ abstract public class AllocationStrategyBase implements AllocationStrategy {
       Thread.sleep(200);
     }
     
-    LOG.info("STATISTIC: Iterations = " + round );    
+    if (verbose) {
+      LOG.info("STATISTIC: Iterations = " + round );
+    }
     
     // release extra containers
     releaseRedundantContainers();
     
     Map<String, List<HamsterContainer>> nodeContainerMap = assembleAllocationResult();
-    LOG.info("STATISTIC: Nodes = " + nodeContainerMap.size() );
+    
+    if (verbose) {
+      LOG.info("STATISTIC: Nodes = " + nodeContainerMap.size());
+    }
     return nodeContainerMap;
   }
   
@@ -266,14 +273,18 @@ abstract public class AllocationStrategyBase implements AllocationStrategy {
       // get container list of this host or create a new list
       List<Container> containerList;
       if (hostToId.containsKey(host)) {
-        LOG.info(String.format("insert container to host=%s, id=%d", host, hostToId.get(host)));
+        if (verbose) {
+          LOG.info(String.format("insert container to host=%s, id=%d", host, hostToId.get(host)));
+        }
         containerList = hostIdToContainers.get(hostToId.get(host));
         if (containerList == null) {
           containerList = new ArrayList<Container>();
           hostIdToContainers.put(hostToId.get(host), containerList);
         }
       } else {
-        LOG.info(String.format("insert container to host=%s, id=%d", host, nHosts));
+        if (verbose) {
+          LOG.info(String.format("insert container to host=%s, id=%d", host, nHosts));
+        }
         hostToId.put(host, nHosts);
         containerList = new ArrayList<Container>();
         hostIdToContainers.put(nHosts, containerList);
@@ -307,6 +318,116 @@ abstract public class AllocationStrategyBase implements AllocationStrategy {
   // should be override by child
   abstract List<ResourceRequest> getAskList();
   
+  void returnAllContainersInHostId(int hostId) {
+    List<Container> containers = hostIdToContainers.get(hostId);
+    for (Container c : containers) {
+      releaseContainers.add(c.getId());
+    }
+    
+    // remove entry in hostToId
+    String host = null;
+    for (Entry<String, Integer> entry : hostToId.entrySet()) {
+      if (entry.getValue() == hostId) {
+        if (host != null) {
+          // double check if host-id is unique
+          LOG.error("host-id is not unique, please check");
+          throw new HamsterException("host-id is not unique, please check");
+        }
+        host = entry.getKey();
+      }
+    }
+    if (host == null) {
+      LOG.error("failed to find a host with id=" + hostId);
+      throw new HamsterException("failed to find a host with id=" + hostId);
+    }
+    hostToId.remove(host);
+    
+    containers.clear();
+  }
+  
+  void returnPartialContainersInHostId(int hostId, int count) {
+    List<Container> containers = hostIdToContainers.get(hostId);
+    List<Container> newContainers = new ArrayList<Container>();
+    int size = containers.size();
+    for (int i = size - count; i < size; i++) {
+      releaseContainers.add(containers.get(i).getId());
+    }
+    for (int i = 0; i < size - count; i++) {
+      newContainers.add(containers.get(i));
+    }
+    hostIdToContainers.put(hostId, newContainers);
+  }
+  
   // should be override by child
-  abstract void releaseRedundantContainers();
+  void releaseRedundantContainers() {
+    int nNeedRelease = m - n;
+
+    // get host id to counts, we will release host will less containers first
+    HostIdToCount[] hostIdToCounts = new HostIdToCount[hostIdToContainers
+        .size() - 1];
+    int idx = 0;
+    for (Entry<Integer, List<Container>> entry : hostIdToContainers.entrySet()) {
+      if (entry.getKey() != 0) {
+        hostIdToCounts[idx] = new HostIdToCount(entry.getKey(), entry
+            .getValue().size());
+        idx++;
+      }
+    }
+
+    // sort host by number of containers;
+    Arrays.sort(hostIdToCounts, new Comparator<HostIdToCount>() {
+      @Override
+      public int compare(HostIdToCount left, HostIdToCount right) {
+        return left.count - right.count;
+      }
+    });
+
+    for (int i = 0; i < hostIdToCounts.length; i++) {
+      HostIdToCount tmp = hostIdToCounts[i];
+      if (tmp.count <= 1) {
+        returnAllContainersInHostId(tmp.hostId);
+        if (verbose) {
+          LOG.info("release all containers in host:[" + tmp.hostId
+            + "], container count = " + tmp.count);
+        }
+      } else if (nNeedRelease > 0) {
+        if (nNeedRelease >= tmp.count - 1) {
+          returnAllContainersInHostId(tmp.hostId);
+          nNeedRelease -= (tmp.count - 1);
+          if (verbose) {
+            LOG.info("release all containers in host:[" + tmp.hostId
+              + "], container count = " + tmp.count);
+          }
+        } else {
+          returnPartialContainersInHostId(tmp.hostId, nNeedRelease);
+          nNeedRelease = 0;
+          if (verbose) {
+            LOG.info("release some containers in host:[" + tmp.hostId
+              + "], container count = " + nNeedRelease
+              + " left-container-count=" + (tmp.count - nNeedRelease));
+          }
+        }
+      }
+    }
+
+    if (verbose) {
+      LOG.info("STATISTIC: Container Utilization = "
+          + (m - releaseContainers.size()) / (float) m);
+    }
+    
+    // check if we need release container in host-0
+    if (nNeedRelease > 0) {
+      List<Container> containerList = hostIdToContainers.get(0);
+      if ((containerList == null) || (containerList.size() <= nNeedRelease)) {
+        throw new HamsterException(
+            "try to release containers in host-0, but containers in host-0 are not enough to release");
+      }
+      returnPartialContainersInHostId(0, nNeedRelease);
+      if (verbose) {
+        LOG.info("release some containers in host:[0], container count = "
+            + nNeedRelease + " left-container-count="
+            + (containerList.size() - nNeedRelease));
+      }
+    }
+  }
 }

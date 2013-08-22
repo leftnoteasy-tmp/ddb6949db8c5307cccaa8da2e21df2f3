@@ -2,24 +2,6 @@
 
 <configuration>
   <property>
-    <name>com.pivotal.hamster.ompi.preinstall</name>
-    <value>false</value>
-    <description>
-      whether Hamster has been pre-installed in YARN
-      cluster nodes, value = {true, false}.
-      If true, please set the following configuration
-      {com.greenplum.hamster.home}, and the
-      $HAMSTER_HOME will set to
-      {com.greenplum.hamster.home} when launching AMs.
-      If false, please set the following configuration
-      {com.greenplum.hamster.tarball.path}, with which,
-      the Hamster binaries tarball will be uploaded to
-      staging area and set
-      $HAMSTER_HOME to ./ for AM.
-    </description>
-  </property>
-
-  <property>
     <name>com.pivotal.hamster.ompi.home</name>
     <value>/path/of/Hamster/pre-installed</value>
     <description>
@@ -29,32 +11,7 @@
       is set to *true*
     </description>
   </property>
-
-  <property>
-    <name>com.pivotal.hamster.ompi.tarball.path</name>
-    <value>/local-path/of/Hamster/tarball</value>
-    <description>
-      the local directory of hamster tarball, e.g.,
-      /Users/hadoop/hamster2/hamster2.tar.gz; make sure
-      to set it when
-      {com.greenplum.hamster.preinstall}
-      is set to *false*.
-    </description>
-  </property>
-
-  <property>
-    <name>com.pivotal.hamster.enabled.logkeys</name>
-    <value></value>
-    <description>
-      which log file will be show to user after a job
-      is finished, split by "," e.g. "stdout",
-      "stdout,stderr", "stderr,syslog". If you leave
-      it blank, we will use default strategy
-      print
-      log out.
-    </description>
-  </property>
-
+  
   <property>
     <name>com.pivotal.hamster.hdfs.dir</name>
     <value>hamster</value>

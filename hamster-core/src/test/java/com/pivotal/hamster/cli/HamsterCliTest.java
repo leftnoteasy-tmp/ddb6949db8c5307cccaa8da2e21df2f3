@@ -333,7 +333,6 @@ public class HamsterCliTest {
     final String HAMSTER_HOME = "/path/to/hamster";
 
     // set necessary properties
-    cli.conf.setBoolean(HamsterConfig.OMPI_PREINSTALL_PROPERTY_KEY, true);
     cli.conf.set(HamsterConfig.OMPI_HOME_PROPERTY_KEY, HAMSTER_HOME);
 
     // create a add file/archive

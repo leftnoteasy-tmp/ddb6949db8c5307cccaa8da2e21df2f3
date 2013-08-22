@@ -31,7 +31,7 @@ public class AppLaunchContext {
     mem = 1024;
     valgrind = false;
     maxPpn = Integer.MAX_VALUE;
-    maxAt = Integer.MAX_VALUE;
+    maxAt = -1;
     args = null;
     prefix = null;
     debug = false;

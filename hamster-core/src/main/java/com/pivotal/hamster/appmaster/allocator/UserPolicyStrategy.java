@@ -296,11 +296,15 @@ public class UserPolicyStrategy extends AllocationStrategyBase {
   // check host is available during allocation
   boolean checkIsHostAvailable(String host) {
     if (availableHosts != null && !availableHosts.contains(host)) {
-      LOG.info("received host not in user specified hostlist, host:" + host);
+      if (verbose) {
+        LOG.info("received host not in user specified hostlist, host:" + host);
+      }
       return false;
     }
     if (getContainersCountForMpiProc(host) >= mproc) {
-      LOG.info("this host already have enough containers, discard this one, host:" + host);
+      if (verbose) {
+        LOG.info("this host already have enough containers, discard this one, host:" + host);
+      }
       return false;
     }
     return true;

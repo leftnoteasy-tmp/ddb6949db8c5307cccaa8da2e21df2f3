@@ -395,9 +395,19 @@ public class HamsterCli {
     
     // set allocation strategy used by AM
     if (isUserDefinedPolicy) {
+      // when user-policy specified (like host/max-ppn, etc.), 
+      // we will ignore allocation strategy in hamster-site.xml
       conf.set(HamsterConfig.ALLOCATION_STRATEGY_KEY, HamsterConfig.USER_POLICY_DRIVEN_ALLOCATION_STRATEGY);
     } else {
-      conf.set(HamsterConfig.ALLOCATION_STRATEGY_KEY, HamsterConfig.PROBABILITY_BASED_ALLOCATION_STRATEGY);
+      // user still can specify their favourite allocation strategy to their conf
+      if (conf.get(HamsterConfig.ALLOCATION_STRATEGY_KEY) == null) {
+        conf.set(HamsterConfig.ALLOCATION_STRATEGY_KEY, HamsterConfig.DEFAULT_HAMSTER_ALLOCATION_STRATEGY);
+      }
+    }
+    
+    // set allocation timeout
+    if (context.getMaxAt() > 0) {
+      conf.setInt(HamsterConfig.ALLOCATION_TIMEOUT_KEY, context.getMaxAt());
     }
   }
   
@@ -746,10 +756,6 @@ public class HamsterCli {
     
     // set CLASSPATH
     addClasspathToEnv();
-    
-    // process folder for pid
-    String pidRoot = conf.get(HamsterConfig.DEFAULT_PID_ROOT_DIR, HamsterConfig.DEFAULT_PID_ROOT_DIR);
-    context.setEnv("HAMSTER_PID_ROOT", pidRoot);
     
     if (context.getVerbose()) {
       context.setEnv("HAMSTER_VERBOSE", "yes");

@@ -4,9 +4,12 @@ import java.util.ArrayList;
 import java.util.List;
 
 import org.apache.commons.lang.StringUtils;
+import org.apache.commons.logging.Log;
+import org.apache.commons.logging.LogFactory;
 
 import com.pivotal.hamster.cli.AppLaunchContext;
 import com.pivotal.hamster.cli.utils.CliUtils;
+import com.pivotal.hamster.common.HamsterCliParseException;
 import com.pivotal.hamster.common.HamsterException;
 import com.pivotal.hamster.commons.cli.Option;
 
@@ -14,6 +17,7 @@ import com.pivotal.hamster.commons.cli.Option;
  * process options unique in hamster (not open-mpi)
  */
 public class HamsterCliProcessor implements CliProcessor {
+  private static final Log LOG = LogFactory.getLog(HamsterCliProcessor.class);
 
   @Override
   public ProcessResultType process(List<Option> options,
@@ -37,7 +41,12 @@ public class HamsterCliProcessor implements CliProcessor {
       } else if (StringUtils.equals("min-ppn", op.getOpt())) {
         // not supported yet
       } else if (StringUtils.equals("max-at", op.getOpt())) {
-        context.setMaxAt(Integer.parseInt(op.getValue()));
+        int maxAt = Integer.parseInt(op.getValue());
+        if (maxAt <= 0) {
+          LOG.error(String.format("-max-at must > 0, now=%d", maxAt));
+          throw new HamsterCliParseException(String.format("-max-at must > 0, now=%d", maxAt));
+        }
+        context.setMaxAt(maxAt);
       } else {
         newOptions.add(op);
       }

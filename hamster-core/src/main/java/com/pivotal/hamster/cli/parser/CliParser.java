@@ -132,6 +132,6 @@ public class CliParser {
             addOption(new Option("min-proc", "min-proc", true, "minimum slots allocated for mpirun do mapping (should >= --np specified)")).
             addOption(new Option("max-ppn", "max-proc-per-node", true, "maximum proc number allocated in each node")).
             addOption(new Option("min-ppn", "min-proc-per-node", true, "minimum proc number allocated in each node")).
-            addOption(new Option("max-alloc", "max-allocation-time", true, "maximum time used do allocation (in seconds), after timeout, all allocated containers will be returned and job will be failed, we will use min{ $max-alloc, yarn.resourcemanager.rm.container-allocation.expiry-interval-ms} as the actual expired timeout"));
+            addOption(new Option("max-at", "max-allocation-time", true, "maximum time used do allocation (in milli-seconds), after timeout, all allocated containers will be returned and job will be failed, we will use min{ $max-alloc, yarn.resourcemanager.rm.container-allocation.expiry-interval-ms} as the actual expired timeout"));
   }
 }
