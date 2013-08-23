@@ -101,8 +101,7 @@ static int plm_yarn_finalize(void);
  */
 static void process_state_monitor_cb(int fd, short args, void *cbdata);
 static void heartbeat_with_AM_cb(int fd, short event, void *data);
-
-static void finish_app_master(bool succeed);
+static void finish_app_master(bool succeed, bool check_proc_status);
 
 /*
  * Local functions for added job state's called in plm_yarn_init
@@ -145,7 +144,6 @@ orte_plm_base_module_1_0_0_t orte_plm_yarn_module = {
  */
 extern char** environ;
 static int num_sync_daemons = 0;
-static int num_completed_jdata_procs = 0;
 static bool appmaster_finished = false;
 
 
@@ -215,9 +213,12 @@ static int plm_yarn_init(void)
 static void process_state_monitor_cb(int fd, short args, void *cbdata)
 {
     orte_proc_t *proc = (orte_proc_t*)cbdata;
+
+    // double check if we need change state
     if(proc->state >= ORTE_PROC_STATE_TERMINATED) {
         return;
     } else {
+        // orted not send proc state to us, so we simply change it to NON_ZERO exit
     	proc->state = ORTE_PROC_STATE_TERM_NON_ZERO;
 		ORTE_ACTIVATE_PROC_STATE(&proc->name, ORTE_PROC_STATE_TERM_NON_ZERO);
     }
@@ -317,21 +318,15 @@ static void heartbeat_with_AM_cb(int fd, short event, void *data)
         orte_job_t* tmp_jdata = (orte_job_t*) opal_pointer_array_get_item(orte_job_data, local_jobid);
         orte_proc_t* proc = (orte_proc_t*) opal_pointer_array_get_item(tmp_jdata->procs, vpid);
 
-
-        if (tmp_jdata->jobid == jdata->jobid) {
-			num_completed_jdata_procs++;
-		}
-
-        if (exit_value == 0) {
-        	proc->state = ORTE_PROC_STATE_TERMINATED;
-        }
-
         /* if this process is already terminated, just skip over */
         if (proc->state >= ORTE_PROC_STATE_TERMINATED) {
             continue;
         }
 
-        if (exit_value == -1000 || exit_value == -100 || exit_value == -101) {
+        if (exit_value == 0) {
+            /* simply active proc state, that's no problem */
+        	ORTE_ACTIVE_PROC_STATE(&proc->name, ORTE_PROC_STATE_TERMINATED);
+        } else if (exit_value == -1000 || exit_value == -100 || exit_value == -101) {
             opal_output(0, "%s plm:yarn:heartbeat_with_AM_cb proc failed to start", ORTE_NAME_PRINT(ORTE_PROC_MY_NAME));
             ORTE_ERROR_LOG(ORTE_ERROR);
             proc->state = ORTE_PROC_STATE_FAILED_TO_START;
@@ -358,26 +353,16 @@ cleanup:
         pbc_rmessage_delete(response_msg);
     }
 
-    if (num_completed_jdata_procs == jdata->num_procs) {
-        /*
-         * all procs are completed, send finish request to AM,
-         * modify job state to ORTE_JOB_STATE_TERMINATED
-         */
-        jdata->state = ORTE_JOB_STATE_TERMINATED;
-        finish_app_master(0 == orte_exit_status);
-        return;
-    } else {
-        /* next heartbeat */
-        opal_event_t *ev = NULL;
-        ev = (opal_event_t*) malloc(sizeof(opal_event_t));
+    /* next heartbeat */
+    opal_event_t *ev = NULL;
+    ev = (opal_event_t*) malloc(sizeof(opal_event_t));
 
-        struct timeval delay;
-        delay.tv_sec = 1;
-        delay.tv_usec = 0;
+    struct timeval delay;
+    delay.tv_sec = 1;
+    delay.tv_usec = 0;
 
-        opal_event_evtimer_set(orte_event_base, ev, heartbeat_with_AM_cb, jdata);
-		opal_event_evtimer_add(ev, &delay);
-    }
+    opal_event_evtimer_set(orte_event_base, ev, heartbeat_with_AM_cb, jdata);
+	opal_event_evtimer_add(ev, &delay);
 }
 
 /* When working in this function, ALWAYS jump to "cleanup" if
@@ -794,14 +779,14 @@ cleanup:
 
 		orte_proc_t* proc = (orte_proc_t*) opal_pointer_array_get_item(jdata->procs, vpid);
 		if (success) {
-			proc->state = ORTE_PROC_STATE_RUNNING;
+            ORTE_ACTIVATE_PROC_STATE(&proc->name, ORTE_PROC_STATE_RUNNING);
 			launched_num++;
 		} else {
 			opal_output(0,
 					"%s plm:yarn:common_process_launch: launch proc failed when jobid = %u, vpid = %u",
 					ORTE_NAME_PRINT(ORTE_PROC_MY_NAME), local_jobid, vpid);
 			proc->state = ORTE_PROC_STATE_FAILED_TO_START;
-			jdata->state = ORTE_JOB_STATE_FAILED_TO_START;
+            ORTE_ACTIVATE_PROC_STATE(&proc->name, ORTE_PROC_STATE_FAILED_TO_START);
 			goto launch_failed;
 		}
 	}
@@ -986,6 +971,8 @@ static void launch_daemons(int fd, short args, void *cbdata)
 		/* indicate that the daemons for this job were launched */
 		state->jdata->state = ORTE_JOB_STATE_DAEMONS_LAUNCHED;
 		daemons->state = ORTE_JOB_STATE_DAEMONS_LAUNCHED;
+        ORTE_ACTIVATE_JOB_STATE(state->jdata, ORTE_JOB_STATE_DAEMONS_LAUNCHED);
+        ORTE_ACTIVATE_JOB_STATE(daemons, ORTE_JOB_STATE_DAEMONS_LAUNCHED);
 		OPAL_OUTPUT_VERBOSE((5, orte_plm_globals.output,
 						"%s plm:yarn:launch_daemons: launch daemon proc successfully with AM",
 						ORTE_NAME_PRINT(ORTE_PROC_MY_NAME)));
@@ -1020,14 +1007,6 @@ static int plm_yarn_actual_launch_procs(orte_job_t* jdata)
 
 	if (rc != ORTE_SUCCESS) {
 		return rc;
-	}
-
-	/* if all jdata procs are launched successfully, then modify the job's state */
-	if (launched_proc_num == jdata->num_procs) {
-		jdata->state = ORTE_JOB_STATE_RUNNING;
-		OPAL_OUTPUT_VERBOSE((5, orte_plm_globals.output,
-						"%s plm:yarn:plm_yarn_actual_launch_procs: launch jdata procs successfully with AM",
-						ORTE_NAME_PRINT(ORTE_PROC_MY_NAME)));
 	}
 
 	return ORTE_SUCCESS;
@@ -1114,7 +1093,7 @@ static void plm_yarn_launch_apps(int fd, short args, void *cbdata)
 
 
 
-static void finish_app_master(bool succeed)
+static void finish_app_master(bool succeed, bool check_proc_status)
 {
     int rc;
     int i, j;
@@ -1124,9 +1103,15 @@ static void finish_app_master(bool succeed)
     	return;
     }
 
+    /* it's a workaround to disable this checking for a weird error of
+     * job terminated with exit_code = 0, but one of the proc's state 
+     * still unterminated, need more tests on this to verify if this 
+     * work around impact on other functionality
+     */
+    
     // we need double check if any proc failed
-    if (succeed) {
-    	/* start with 1 because we don't want to check daemon's proc */
+    if (succeed && check_proc_status) {
+    	// start with 1 because we don't want to check daemon's proc
         for (i = 1; i < orte_job_data->size; i++) {
             orte_job_t* job = opal_pointer_array_get_item(orte_job_data, i);
             if (!job) {
@@ -1138,13 +1123,13 @@ static void finish_app_master(bool succeed)
                     continue;
                 }
                 // if any process is non-terminated, we will consider it's error
-                if (proc->state < ORTE_PROC_STATE_TERMINATED) {
+                if (proc->state < ORTE_PROC_STATE_TERMINATED && proc->state != ORTE_PROC_STATE_WAITPID_FIRED) {
                     succeed = false;
-                    break; /* break the inner 'for' loop */
+                    break;
                 }
             }
             if (!succeed) {
-                break;  /* break the outer 'for' loop */
+                break;
             }
         }
     }
@@ -1216,7 +1201,7 @@ cleanup:
 * Terminate the orteds for a given job
  */
 static int plm_yarn_terminate_orteds(void) {
-	finish_app_master(0 == orte_exit_status);
+	finish_app_master(0 == orte_exit_status, true);
     orte_job_t* jdata = orte_get_job_data_object(ORTE_PROC_MY_NAME->jobid);
     if (ORTE_JOB_STATE_DAEMONS_TERMINATED != jdata->state) {
 		/* need to set the #terminated value to avoid an incorrect error msg */
@@ -1249,7 +1234,7 @@ static int plm_yarn_finalize(void)
 
 
 static void plm_yarn_quit(int fd, short args, void* cbdata) {
-    finish_app_master(0 == orte_exit_status);
+    finish_app_master(0 == orte_exit_status, true);
     orte_quit(fd, args, cbdata);
 }
 
@@ -1262,7 +1247,7 @@ static void plm_yarn_cleanup_job(int fd, short argc, void *cbdata) {
                     ORTE_NAME_PRINT(ORTE_PROC_MY_NAME),
                     (NULL == jdata) ? "NULL" : ORTE_JOBID_PRINT(jdata->jobid)));
 
-    finish_app_master(0 == orte_exit_status);
+    finish_app_master(0 == orte_exit_status, false);
 
     /* flag that we were notified */
     jdata->state = ORTE_JOB_STATE_NOTIFIED;
