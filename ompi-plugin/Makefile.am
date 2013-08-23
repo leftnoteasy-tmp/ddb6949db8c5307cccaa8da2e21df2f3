@@ -1,12 +1,9 @@
-if OMPI_164
-SUBDIRS = common v1.6
-endif
-
-if OMPI_172
+if OMPI_17
 SUBDIRS = common v1.7
 endif
 
-ACLOCAL_AMFLAGS = -I m4
+if OMPI_16
+SUBDIRS = common v1.6
+endif
 
-DIST_SUBDIRS = common v1.6 v1.7
-EXTRA_DIST = autogen.sh 
+ACLOCAL_AMFLAGS = -I m4

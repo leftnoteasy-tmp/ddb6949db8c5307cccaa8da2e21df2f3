@@ -26,14 +26,14 @@ import org.junit.Test;
 import com.pivotal.hamster.appmaster.utils.HamsterAppMasterUtils;
 import com.pivotal.hamster.common.MockContainer;
 
-public class ProbabilityBasedAllocationStrategyTest {
+public class NaiveStrategyTest {
   static int containerId = 1;
   static String LOCALHOST;
   final RecordFactory recordFactory =
       RecordFactoryProvider.getRecordFactory(null);
   
-  class Allocator_testAllocation1 extends YarnContainerAllocator {
-    public Allocator_testAllocation1() {
+  class Naive_testAllocation1 extends YarnContainerAllocator {
+    public Naive_testAllocation1() {
       super(null, null);
     }
 
@@ -43,11 +43,8 @@ public class ProbabilityBasedAllocationStrategyTest {
     AllocateResponse invokeAllocate(List<ResourceRequest> resourceRequests) {
       try {
         if (round == 0) {
-          // check input, 5 * ANY + 1 * ANY + 5 * local + 5 * rack
-          checkContains(resourceRequests, LOCALHOST, 5);
-          checkContains(resourceRequests, RackResolver.resolve(LOCALHOST)
-              .getNetworkLocation(), 5);
-          checkContains(resourceRequests, "*", 6);
+          // check input, 5 * ANY
+          checkContains(resourceRequests, "*", 5);
 
           // mock output, 1 * local + 2 * mock_host1 + 1 * mock_host2
           AllocateResponse response = getEmptyResponse();
@@ -58,18 +55,15 @@ public class ProbabilityBasedAllocationStrategyTest {
           round++;
           return response;
         } else if (round == 1) {
-          // check input, 2 * host2 + 1 * ANY + 3 * ANY + 3 * rack + 1 * ?
-          checkContains(resourceRequests, "mock_host2", 2);
-          checkContains(resourceRequests, "*", 4);
-          checkContains(resourceRequests, RackResolver.resolve(LOCALHOST)
-              .getNetworkLocation(), 3);
+          // check input, 3 * ANY
+          checkContains(resourceRequests, "*", 3);
           
           // mock output, 4 * host2, 3 * host1
           AllocateResponse response = getEmptyResponse();
           response.getAMResponse().setAllocatedContainers(
               getMockContainers(
                   new String[] { "mock_host1", "mock_host2" },
-                  new int[] { 5, 5 }));
+                  new int[] { 3, 3 }));
           round++;
           return response;
         }
@@ -80,8 +74,8 @@ public class ProbabilityBasedAllocationStrategyTest {
     }
   }
   
-  class Allocator_testAllocation2 extends YarnContainerAllocator {
-    public Allocator_testAllocation2() {
+  class Naive_testAllocation2 extends YarnContainerAllocator {
+    public Naive_testAllocation2() {
       super(null, null);
     }
 
@@ -91,11 +85,8 @@ public class ProbabilityBasedAllocationStrategyTest {
     AllocateResponse invokeAllocate(List<ResourceRequest> resourceRequests) {
       try {
         if (round == 0) {
-          // check input, 5 * ANY + 1 * ANY + 5 * local + 5 * rack
-          checkContains(resourceRequests, LOCALHOST, 5);
-          checkContains(resourceRequests, RackResolver.resolve(LOCALHOST)
-              .getNetworkLocation(), 5);
-          checkContains(resourceRequests, "*", 6);
+          // check input, 5 * ANY
+          checkContains(resourceRequests, "*", 5);
 
           // mock output, 1 * local + 2 * mock_host1 + 1 * mock_host2
           AllocateResponse response = getEmptyResponse();
@@ -106,18 +97,15 @@ public class ProbabilityBasedAllocationStrategyTest {
           round++;
           return response;
         } else if (round == 1) {
-          // check input, 2 * ANY + 1 * ANY + 2 * local + 2 * rack
-          checkContains(resourceRequests, LOCALHOST, 2);
-          checkContains(resourceRequests, "*", 3);
-          checkContains(resourceRequests, RackResolver.resolve(LOCALHOST)
-              .getNetworkLocation(), 2);
+          // check input, 2 * ANY
+          checkContains(resourceRequests, "*", 2);
           
           // mock output, 5 * local
           AllocateResponse response = getEmptyResponse();
           response.getAMResponse().setAllocatedContainers(
               getMockContainers(
-                  new String[] { LOCALHOST },
-                  new int[] { 5 }));
+                  new String[] { "mock_host1", "mock_host2" },
+                  new int[] {  4, 1 }));
           round++;
           return response;
         }
@@ -141,16 +129,16 @@ public class ProbabilityBasedAllocationStrategyTest {
      * allocate to 3 nodes, 1 node will be completely return
      */
     
-    Allocator_testAllocation1 allocator = new Allocator_testAllocation1();
-    ProbabilityBasedAllocationStrategy strategy = new ProbabilityBasedAllocationStrategy(allocator, false);
+    Naive_testAllocation1 allocator = new Naive_testAllocation1();
+    NaiveAllocationStrategy strategy = new NaiveAllocationStrategy(allocator, false);
     ConcurrentLinkedQueue<ContainerId> releaseContainers = new ConcurrentLinkedQueue<ContainerId>();
     strategy.allocate(5, releaseContainers, null, null);
     
     // check release
     // local: 1,
-    // host1: 2, 3, 5, 6, 7, [ 8, 9 ] 
-    // host2: [ 4, 10, 11, 12, 13, 14 ]
-    checkReleaseQueue(releaseContainers, new int[] { 4, 8, 9, 10, 11, 12, 13, 14 } );
+    // host1: 2, 3, 5, 6, 7 
+    // host2: [ 4, 8, 9, 10 ]
+    checkReleaseQueue(releaseContainers, new int[] { 4, 8, 9, 10 } );
   }
   
   @Test
@@ -159,14 +147,16 @@ public class ProbabilityBasedAllocationStrategyTest {
      * allocate only to local host, and some containers will be return
      */
     
-    Allocator_testAllocation2 allocator = new Allocator_testAllocation2();
-    ProbabilityBasedAllocationStrategy strategy = new ProbabilityBasedAllocationStrategy(allocator, false);
+    Naive_testAllocation2 allocator = new Naive_testAllocation2();
+    NaiveAllocationStrategy strategy = new NaiveAllocationStrategy(allocator, false);
     ConcurrentLinkedQueue<ContainerId> releaseContainers = new ConcurrentLinkedQueue<ContainerId>();
     strategy.allocate(5, releaseContainers, null, null);
     
     // check release
-    // local: 1, 2, 3, 4, 5, [6, 7, 8]
-    checkReleaseQueue(releaseContainers, new int[] {6, 7, 8 } );
+    // local: 1, 2, 3
+    // host1: 4, 5, 6, [7]
+    // host2: [8]
+    checkReleaseQueue(releaseContainers, new int[] { 7, 8 } );
   }
   
   AllocateResponse getEmptyResponse() {

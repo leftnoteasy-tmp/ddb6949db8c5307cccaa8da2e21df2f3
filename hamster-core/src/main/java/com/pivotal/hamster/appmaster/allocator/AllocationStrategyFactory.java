@@ -19,6 +19,8 @@ public class AllocationStrategyFactory {
       strategy = new ProbabilityBasedAllocationStrategy(allocator, true);
     } else if (StringUtils.equalsIgnoreCase(strategyType, HamsterConfig.USER_POLICY_DRIVEN_ALLOCATION_STRATEGY)) {
       strategy = new UserPolicyStrategy(allocator, true);
+    } else if (StringUtils.equalsIgnoreCase(strategyType, HamsterConfig.NAIVE_ALLOCATION_STRATEGY)) {
+      strategy = new NaiveAllocationStrategy(allocator, true);
     }
     
     if (strategy == null) {

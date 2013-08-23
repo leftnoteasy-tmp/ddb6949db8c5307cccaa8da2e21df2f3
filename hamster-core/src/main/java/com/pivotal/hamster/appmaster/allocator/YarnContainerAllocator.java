@@ -82,6 +82,8 @@ public class YarnContainerAllocator extends ContainerAllocator {
   Resource resource;
   Configuration conf;
   ClientService clientService;
+  long startTime;
+  int allocationTimeout;
   
   // allocate can either be used by "allocate resource" or "get completed container"
   // we will not make them used at the same time
@@ -151,6 +153,10 @@ public class YarnContainerAllocator extends ContainerAllocator {
     rmPollInterval = conf.getInt(HamsterConfig.HAMSTER_ALLOCATOR_PULL_INTERVAL_TIME, 
         HamsterConfig.DEFAULT_HAMSTER_ALLOCATOR_PULL_INTERVAL_TIME);
     
+    // set timeout parameters
+    startTime = System.currentTimeMillis();
+    allocationTimeout = getAllocationTimeout();
+    
     // read resource request from ENV
     readResourceFromEnv();
               
@@ -182,6 +188,26 @@ public class YarnContainerAllocator extends ContainerAllocator {
       unregisterFromRM();
     }
     LOG.info("stop succeed");
+  }
+  
+  /**
+   * get allocation timeout, in milliseconds, We will get
+   * RM-Container-Expire-Interval at the same time, Because
+   * RM-Container-Expire-Interval will be triggered and release containers we
+   * allocated, that's will make our algorithm become very complex, for simple,
+   * we will return 
+   * min(RM-Container-Expire-Interval * threshold, user-specified-value)
+   */
+  int getAllocationTimeout() {
+    final double TIMEOUT_THRESHOLD = 0.9;
+    int rmContainerExprInterval = conf.getInt(
+        YarnConfiguration.RM_CONTAINER_ALLOC_EXPIRY_INTERVAL_MS,
+        YarnConfiguration.DEFAULT_RM_CONTAINER_ALLOC_EXPIRY_INTERVAL_MS);
+    int userAllocationTimeOut = conf.getInt(
+        HamsterConfig.ALLOCATION_TIMEOUT_KEY,
+        HamsterConfig.DEFAULT_ALLOCATION_TIMEOUT);
+    return Math.min((int) (TIMEOUT_THRESHOLD * rmContainerExprInterval),
+        userAllocationTimeOut);
   }
   
   AllocationStrategy getStrategy(Configuration conf) {
@@ -242,6 +268,16 @@ public class YarnContainerAllocator extends ContainerAllocator {
       public void run() {
         while (!stopped.get() && !Thread.currentThread().isInterrupted()) {
           try {
+            // check if we exceeded allocation timeout
+            int timeElapsed = (int) (System.currentTimeMillis() - startTime);
+            if (timeElapsed > allocationTimeout) {
+              String msg = String.format(
+                      "allocation timeout reached, time-used:%d(ms), failure-time-out:%d(ms), fail job,",
+                      timeElapsed, allocationTimeout);
+              dispatcher.getEventHandler().handle(
+                  new HamsterFailureEvent(new HamsterException(msg), msg));
+            }
+            
             Thread.sleep(rmPollInterval);
             // don't need any resource request, this is a query, do it after allocateFinished
             if (allocateFinished.get()) {

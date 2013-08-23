@@ -61,8 +61,8 @@ import org.apache.hadoop.yarn.factories.RecordFactory;
 import org.apache.hadoop.yarn.factory.providers.RecordFactoryProvider;
 import org.junit.Test;
 
-import com.pivotal.hamster.cli.HamsterCli;
 import com.pivotal.hamster.common.HamsterConfig;
+import com.pivotal.hamster.commons.cli.ParseException;
 
 public class HamsterCliTest {
   static RecordFactory recordFactory = RecordFactoryProvider
@@ -320,31 +320,35 @@ public class HamsterCliTest {
   }
 
   /**
-   * Test for a full life of initialize client, new application and submit application
+   * Test for a full life of initialize client, new application and submit
+   * application
+   * 
+   * @throws ParseException
    */
   @Test
-  public void testWholeProcess() throws IOException, InterruptedException {
+  public void testWholeProcess() throws IOException, InterruptedException,
+      ParseException {
     MockFileSystem fs = new MockFileSystem(new Configuration());
     HamsterCli cli = new MockHamsterCli(fs);
     final String HAMSTER_HOME = "/path/to/hamster";
 
     // set necessary properties
-    cli.conf.setBoolean(HamsterConfig.OMPI_PREINSTALL_PROPERTY_KEY, true);
-    cli.conf
-        .set(HamsterConfig.OMPI_HOME_PROPERTY_KEY, HAMSTER_HOME);
+    cli.conf.set(HamsterConfig.OMPI_HOME_PROPERTY_KEY, HAMSTER_HOME);
 
     // create a add file/archive
     createLocalFile("file.data", 1111);
     createLocalFile("archive.tar.gz", 2222);
 
-    cli.initialize("mpirun --add-file file.data --add-archive archive.tar.gz --add-env PATH=/user/defined/path --add-env ENV0=env0 -np 2 hello"
+    cli.processCli("-s file.data --preload-archives archive.tar.gz -x PATH=/user/defined/path -x ENV0=env0 -np 2 hello"
         .split(" "));
-    cli.getNewApplication();
 
     // set this job state to finished
     MockClientRMProtocol mockYarnClient = (MockClientRMProtocol) cli.client;
     mockYarnClient.setYarnApplicationState(YarnApplicationState.FINISHED);
     mockYarnClient.setFinalApplicationStatus(FinalApplicationStatus.SUCCEEDED);
+
+    // get new application
+    cli.getNewApplication();
 
     // submit
     ApplicationSubmissionContext ctx = cli.submitApplication();
@@ -352,24 +356,30 @@ public class HamsterCliTest {
     // check if file existed in local resources
     assertFileExists(ctx, fs, "file.data", 1111, LocalResourceType.FILE);
     assertFileExists(ctx, fs, "archive", 2222, LocalResourceType.ARCHIVE);
-    
+
     // check if env exists (default added envs)
     assertEnvExists(ctx, "LD_LIBRARY_PATH", HAMSTER_HOME + "/lib");
-    assertEnvExists(ctx, "LD_LIBRARY_PATH", HAMSTER_HOME + "/lib/openmpi");
-    
+
     // user specified envs
     assertEnvExists(ctx, "PATH", "/user/defined/path");
     assertEnvExists(ctx, "ENV0", "env0");
-    
+
     // check command line
-    Assert.assertEquals(ctx.getAMContainerSpec().getCommands().get(0), 
-        "$JAVA_HOME/bin/java -Xmx512M -Xms16M -cp ./*:$HADOOP_CONF_DIR:$HADOOP_COMMON_HOME/share/hadoop/common/*:$HADOOP_COMMON_HOME/share/hadoop/common/lib/*:$HADOOP_HDFS_HOME/share/hadoop/hdfs/*:$HADOOP_HDFS_HOME/share/hadoop/hdfs/lib/*:$HADOOP_YARN_HOME/share/hadoop/yarn/*:$HADOOP_YARN_HOME/share/hadoop/yarn/lib/*:hamster-core.jar com.pivotal.hamster.appmaster.HamsterAppMaster mpirun -mca odls yarn -mca plm yarn -mca ras yarn -np 2 hello 1><LOG_DIR>/stdout 2><LOG_DIR>/stderr");
+    Assert.assertEquals(ctx.getAMContainerSpec().getCommands().get(0),
+        "$JAVA_HOME/bin/java -Xmx512M -Xms16M -cp "
+            + "./*:$HADOOP_CONF_DIR:$HADOOP_COMMON_HOME/share/hadoop/common/*:"
+            + "$HADOOP_COMMON_HOME/share/hadoop/common/lib/*:"
+            + "$HADOOP_HDFS_HOME/share/hadoop/hdfs/*:"
+            + "$HADOOP_HDFS_HOME/share/hadoop/hdfs/lib/*:"
+            + "$HADOOP_YARN_HOME/share/hadoop/yarn/*:"
+            + "$HADOOP_YARN_HOME/share/hadoop/yarn/lib/*:hamster-core.jar "
+            + "com.pivotal.hamster.appmaster.HamsterAppMaster "
+            + "mpirun -mca ras yarn -mca plm yarn -mca state yarn -mca odls "
+            + "yarn --np 2 hello 1><LOG_DIR>/stdout 2><LOG_DIR>/stderr");
   }
 
-  private void assertFileExists(
-      ApplicationSubmissionContext ctx,
-      MockFileSystem fs,
-      String resourceKey, int size, LocalResourceType type) {
+  private void assertFileExists(ApplicationSubmissionContext ctx,
+      MockFileSystem fs, String resourceKey, int size, LocalResourceType type) {
     Map<String, LocalResource> resources = ctx.getAMContainerSpec()
         .getLocalResources();
     for (Entry<String, LocalResource> entry : resources.entrySet()) {
@@ -380,10 +390,8 @@ public class HamsterCliTest {
       }
     }
   }
-  
-  private void assertEnvExists(
-      ApplicationSubmissionContext ctx,
-      String envKey,
+
+  private void assertEnvExists(ApplicationSubmissionContext ctx, String envKey,
       String envValue) {
     Map<String, String> envs = ctx.getAMContainerSpec().getEnvironment();
     boolean keyContains = false;
@@ -392,7 +400,9 @@ public class HamsterCliTest {
         keyContains = true;
         boolean valueContains = false;
         for (String value : entry.getValue().split(":")) {
-          valueContains = true;
+          if (StringUtils.equals(envValue, value)) {
+            valueContains = true;
+          }
         }
         Assert.assertTrue(valueContains);
         break;
