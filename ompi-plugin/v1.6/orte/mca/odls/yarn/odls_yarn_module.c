@@ -260,14 +260,8 @@ static void monitor_local_launch(int fd, short event, void* cbdata) {
 
     // do monitoring logic
     // get processes pid path
-    char* pid_root = getenv("HAMSTER_PID_ROOT");
-    if (!pid_root) {
-        pid_root = "/tmp/hamster-pid";
-    }
     char pid_dir[1024];
-    strcpy(pid_dir, pid_root);
-    int path_len = strlen(pid_dir);
-    sprintf(pid_dir + path_len, "/%u", jobid);
+    sprintf(pid_dir, "../%u", jobid);
 
     // see files in pid path
     DIR* dirp = opendir(pid_dir);
@@ -510,14 +504,8 @@ static void wait_process_completed(int fd, short event, void* cbdata) {
 
     // do monitoring logic
     // get processes pid path
-    char* pid_root = getenv("HAMSTER_PID_ROOT");
-    if (!pid_root) {
-        pid_root = "/tmp/hamster-pid";
-    }
     char pid_dir[1024];
-    strcpy(pid_dir, pid_root);
-    int path_len = strlen(pid_dir);
-    sprintf(pid_dir + path_len, "/%u", jobid);
+    sprintf(pid_dir, "../%u", jobid);
 
     // see files in pid path
     DIR* dirp = opendir(pid_dir);
@@ -935,6 +923,13 @@ static void send_cb(int status, orte_process_name_t *peer,
     OBJ_RELEASE(buf);
 }
 
+static int create_dir_for_pidfile() {
+    char dir_name[1024];
+    strcpy(dir_name, "../");
+    sprintf(dir_name + strlen(dir_name), "/%u", jobid);
+    return mkdir(dir_name, S_IRWXU | S_IRWXG | S_IROTH | S_IXOTH);
+}
+
 /**
  * Launch all processes allocated to the current node.
  */
@@ -978,6 +973,12 @@ static int orte_odls_yarn_launch_local_procs(opal_buffer_t *data)
         child = (orte_odls_child_t*)item;
         child->alive = true;
         child->state = ORTE_PROC_STATE_INIT;
+    }
+
+    /* create dir for pid file */
+    if (ORTE_SUCCESS != (rc = create_dir_for_pidfile())) {
+        opal_output(0, "%s odls:yarn:orte_odls_yarn_launch_local_procs, failed to create directory for pidfile");
+        ORTE_ERROR_LOG(rc);
     }
 
     /* register a callback for hnp sync response */
