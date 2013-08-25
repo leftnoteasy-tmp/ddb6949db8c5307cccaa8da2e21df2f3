@@ -1,5 +1,4 @@
-AM_CPPFLAGS = -I$(prefix)/include/openmpi
-#installdirs = $(prefix)/lib64
+AM_CPPFLAGS = -I$(includedir)/openmpi
 installdirs = $(libdir)
 
 # main library setup
@@ -9,7 +8,7 @@ lib_LTLIBRARIES = libhamster_common.la
 libhamster_common_la_SOURCES =
 
 # pkgdata setup
-dist_pkgdata_DATA = hamster_protos.pb
+#dist_pkgdata_DATA = hamster_protos.pb
 
 # local files
 headers = hdclient.h

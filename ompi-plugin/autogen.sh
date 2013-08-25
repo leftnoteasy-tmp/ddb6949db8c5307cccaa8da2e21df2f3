@@ -1521,19 +1521,23 @@ if test "x$config" = "x" -o ! -f "$config" ; then
     $ECHO "with the --verbose option to get more details on a potential"
     $ECHO "misconfiguration."
 else
-	ompi_version=$(mpirun --version 2>&1|head -1|cut -d' ' -f4|head -c 3)
-	$ECHO "OpenMPI $ompi_version is installed on your system."
-	if [ "x$ompi_version" != "x1.7" -a "x$ompi_version" != "x1.6" ]; then
-		$ECHO "Sorry, currently Hamster supports only OpenMPI-1.6 and OpenMPI-1.7"
-	else 
-    	$ECHO "The $PROJECT build system is now prepared.  To build here, run:"
-    	short_ompi_version=$(echo $ompi_version|sed 's/\.//g')
-		$ECHO "  $config --prefix=/where/open-mpi/installed --with-ompi${short_ompi_version}"
-    	$ECHO "  make"
+	$ECHO "-------------------------------------------"
+    $(mpirun --version >/dev/null 2>&1)
+    if [ $? -ne 0 ]; then
+        $ECHO "OpenMPI is not installed on your system, please check!"
+    else
+        ompi_version=$(mpirun --version 2>&1|head -1|cut -d' ' -f4)
+        $ECHO "OpenMPI $ompi_version is installed on your system."
+        short_ompi_version=${ompi_version%.*}
+        if [ "x$short_ompi_version" != "x1.7" -a "x$short_ompi_version" != "x1.6" ]; then
+            $ECHO "Sorry, currently Hamster supports only OpenMPI-1.6 and OpenMPI-1.7 series"
+        else 
+            $ECHO "The $PROJECT build system is now prepared.  To build here, run:"
+            $ECHO "  $config --prefix=/where/open-mpi/installed --with-ompi=${short_ompi_version}"
+            $ECHO "  make"
+        fi
     fi
 fi
-
-#  	$ECHO "  $config --prefix=/where/open-mpi/installed --ompi-version=[OpenMPI Version, e.g., 1.7.2]"
 
 # Local Variables:
 # mode: sh

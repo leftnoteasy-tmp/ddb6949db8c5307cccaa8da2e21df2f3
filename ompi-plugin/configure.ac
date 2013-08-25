@@ -65,20 +65,13 @@ AC_CHECK_FUNCS([bzero gethostbyname gethostname gettimeofday memmove memset sock
 #AC_DEFINE(ompi)
 #AM_CONDITIONAL(OMPI_VERSION, test x$ompi = x172)
 
-AC_ARG_WITH([ompi17],
-  			[AS_HELP_STRING([--with-ompi17@<:@=ARG@:>@], [with OpenMPI-1.7.x support @<:@ARG=no@:>@])],
-  			[:],
-  			[with_ompi17=no])
-#AC_DEFUN([OMPI_VERSION],[
-#])  
-AM_CONDITIONAL([OMPI_17], [test x$with_ompi17 = xyes])
+AC_ARG_WITH([ompi],
+            [AS_HELP_STRING([--with-ompi@<:@=VERSION@:>@], [OpenMPI version  @<:@default VERSION=1.7@:>@])],
+            [:],
+            [with_ompi=1.7])
+AM_CONDITIONAL([OMPI_17], [test x$with_ompi = x1.7])
+AM_CONDITIONAL([OMPI_16], [test x$with_ompi = x1.6])
 
-
-AC_ARG_WITH([ompi16],
-  			[AS_HELP_STRING([--with-ompi16@<:@=ARG@:>@], [with OpenMPI-1.6.x support @<:@ARG=no@:>@])],
-  			[:],
-  			[with_ompi16=no])
-AM_CONDITIONAL([OMPI_16], [test x$with_ompi16 = xyes])
 
 AC_CONFIG_FILES([Makefile
                  common/Makefile
