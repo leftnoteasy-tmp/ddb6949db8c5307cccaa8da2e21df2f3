@@ -41,4 +41,4 @@ libhamster_common_la_SOURCES += \
         base/pbc/src/varint.c \
         base/pbc/src/wmessage.c
 
-EXTRA_DIST = base/pbc/license.txt
+EXTRA_DIST += base/pbc/license.txt

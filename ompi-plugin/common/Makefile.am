@@ -15,6 +15,8 @@ headers = hdclient.h
 ortedir = $(includedir)/openmpi/$(subdir)
 nobase_orte_HEADERS = $(headers)
 
+EXTRA_DIST = hamster_protos.pb
+
 include base/Makefile.am
 
 distclean-local: 
