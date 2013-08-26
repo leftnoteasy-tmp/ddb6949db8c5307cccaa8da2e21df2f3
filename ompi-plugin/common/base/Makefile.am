@@ -8,6 +8,7 @@
 #
 
 headers += \
+	base/hdclient-constants.h \
 	base/net_utils.h \
 	base/str_utils.h \
 	base/pbc/pbc.h \
@@ -19,7 +20,8 @@ headers += \
 	base/pbc/src/pattern.h \
 	base/pbc/src/proto.h \
 	base/pbc/src/stringpool.h \
-	base/pbc/src/varint.h 
+	base/pbc/src/varint.h \
+	base/pbc/src/descriptor.pbc.h
 			
 libhamster_common_la_SOURCES += \
         base/net_utils.c \
@@ -38,3 +40,5 @@ libhamster_common_la_SOURCES += \
         base/pbc/src/stringpool.c \
         base/pbc/src/varint.c \
         base/pbc/src/wmessage.c
+
+EXTRA_DIST += base/pbc/license.txt
