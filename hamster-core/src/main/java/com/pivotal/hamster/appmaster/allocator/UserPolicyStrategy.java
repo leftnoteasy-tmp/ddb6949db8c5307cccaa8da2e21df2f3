@@ -194,23 +194,7 @@ public class UserPolicyStrategy extends AllocationStrategyBase {
   @Override
   void releaseRedundantContainers() {
     int nNeedRelease = m - n;
-    
-    // there're two steps to release redundant containers,
-    // first, we will scan all allocated containers, if containers count in one host are <= 1 (0 for hnp node)
-    // we will discard such containers
-    // then we will deduct containers from more to less
-    // get host id to counts, we will release host will less containers first
-    HostIdToCount[] hostIdToCounts = new HostIdToCount[hostIdToContainers
-        .size() - 1];
-    int idx = 0;
-    for (Entry<Integer, List<Container>> entry : hostIdToContainers.entrySet()) {
-      if (entry.getKey() != 0) {
-        hostIdToCounts[idx] = new HostIdToCount(entry.getKey(), entry
-            .getValue().size());
-        idx++;
-      }
-    }
-    
+
     // loop hosts and release container cannot run MPI proc
     for (String host : availableHosts) {
       List<Container> containers = getContainersByHost(host);
@@ -228,6 +212,7 @@ public class UserPolicyStrategy extends AllocationStrategyBase {
     Map<Integer, List<List<Container>>> nodeSizeToContainersLists = new HashMap<Integer, List<List<Container>>>();
     for (String host : availableHosts) {
       List<Container> containers = getContainersByHost(host);
+  
       int mpiProc = getContainersCountForMpiProc(host);
       
       // skip such node
@@ -245,7 +230,7 @@ public class UserPolicyStrategy extends AllocationStrategyBase {
         LOG.error("this shouldn't happen, all node with mpi_proc > 0 should have enough containers");
         throw new HamsterException("this shouldn't happen, all node with mpi_proc > 0 should have enough containers");
       }
-      
+     
       putContainersToMpiProcSizeMap(mpiProc, containers, nodeSizeToContainersLists);
     }
     
@@ -275,6 +260,7 @@ public class UserPolicyStrategy extends AllocationStrategyBase {
           for (Container container : containers) {
             releaseContainers.add(container.getId());
           }
+          containers.clear();
         } else {
           releaseContainers.add(containers.get(containers.size() - 1).getId());
           containers.remove(containers.size() - 1);
