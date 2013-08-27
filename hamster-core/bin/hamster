@@ -4,6 +4,6 @@ PARAMS=$@
 HAMSTER_CORE_FULLPATH=$(which hamster)
 HAMSTER_CORE_HOME=${HAMSTER_CORE_FULLPATH%/*}
 
-CLASSPATH=$HADOOP_CONF_DIR:$YARN_CONF_DIR:$HDFS_CONF_DIR:$HAMSTER_CORE_HOME/../hamster-core-0.8.0/lib/hamster/*:$HAMSTER_CORE_HOME/../hamster-core-0.8.0/lib/hamster/lib/*:$HAMSTER_CORE_HOME/../hamster-core-0.8.0/conf:$CLASSPATH
+CLASSPATH=$HADOOP_CONF_DIR:$YARN_CONF_DIR:$HDFS_CONF_DIR:$HAMSTER_CORE_HOME/../lib/hamster/*:$HAMSTER_CORE_HOME/../lib/hamster/lib/*:$HAMSTER_CORE_HOME/../conf:$CLASSPATH
 
 java $JAVA_OPTS -cp $CLASSPATH com.pivotal.hamster.cli.HamsterCli $PARAMS
