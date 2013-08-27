@@ -1,0 +1,23 @@
+<?xml version="1.0"?>
+
+<configuration>
+  <property>
+    <name>com.pivotal.hamster.ompi.home</name>
+    <value>/root/program/orte</value>
+    <description>
+      the dir path of Hamster which has been
+      pre-installed in *YARN NM*. Make sure to set
+      it when {com.greenplum.hamster.preinstall}
+      is set to *true*
+    </description>
+  </property>
+  
+  <property>
+    <name>com.pivotal.hamster.hdfs.dir</name>
+    <value>hamster</value>
+    <description>
+      the default dir in HDFS for Hamster job to
+      upload files. by default, we will put it in hdfs:user-home/hamster
+    </description>
+  </property>
+</configuration>
