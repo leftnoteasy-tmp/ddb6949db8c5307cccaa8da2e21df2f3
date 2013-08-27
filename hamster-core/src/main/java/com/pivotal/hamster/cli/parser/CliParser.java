@@ -80,7 +80,7 @@ public class CliParser {
             addOption(new Option("oversubscribe", "oversubscribe", false, "Nodes are allowed to be oversubscribed, even on a managed system")).
             addOption(new Option("path", "path", true, "PATH to be used to look for executables to start processes")).
             addOption(new Option("pernode", "pernode", false, "Launch one process per available node")).
-            addOption(new Option("p", "policy", true, "policy for scheduling valid value : { default, compute-locality/cl")).
+            addOption(new Option("p", "policy", true, "policy for scheduling valid value : { default, compute-locality/cl }")).
             addOption(new Option("ppr", "ppr", true, "Comma-separated list of number of processes on a given resource type [default: none]")).
             addOption(new Option("prefix", "prefix", true, "Prefix where Open MPI is installed on remote nodes")).
             addOption(new Option("preload-files", "preload-files", true, "Preload the comma separated list of files to the remote machines current working directory before starting the remote process.")).
