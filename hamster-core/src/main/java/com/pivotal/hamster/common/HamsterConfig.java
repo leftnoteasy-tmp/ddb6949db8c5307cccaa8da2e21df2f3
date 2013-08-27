@@ -20,6 +20,11 @@ public interface HamsterConfig {
   public static final String USER_POLICY_HOST_LIST_KEY = HAMSTER_CONFIG_PREFIX + "user.policy.hostlist";
   public static final String USER_POLICY_MPROC_KEY = HAMSTER_CONFIG_PREFIX + "user.policy.mproc";
   public static final String USER_POLICY_MNODE_KEY = HAMSTER_CONFIG_PREFIX + "user.policy.mnode";
+  
+  /*
+   * configuration for username
+   */
+  public static final String USER_NAME_KEY = HAMSTER_CONFIG_PREFIX + "user.name";
     
   /* hnp expire time */
   public static final String HAMSTER_HNP_LIVENESS_EXPIRE_TIME = HAMSTER_CONFIG_PREFIX + "hnp.liveness.expiry-internal-ms";

@@ -25,6 +25,7 @@ import org.junit.Test;
 
 import com.pivotal.hamster.appmaster.ut.MockDispatcher;
 import com.pivotal.hamster.appmaster.ut.UTUtils;
+import com.pivotal.hamster.common.HamsterConfig;
 import com.pivotal.hamster.common.LaunchContext;
 import com.pivotal.hamster.common.MockContainer;
 import com.pivotal.hamster.common.ProcessName;
@@ -103,6 +104,7 @@ public class ContainerLauncherTest {
     MockDispatcher dispatcher = new MockDispatcher();
     ContainerLauncherUT launcher = new ContainerLauncherUT(dispatcher);
     launcher.conf = new Configuration();
+    launcher.conf.set(HamsterConfig.USER_NAME_KEY, "user");
     
     // mock launch context
     LaunchContext[] ctx = new LaunchContext[1024];

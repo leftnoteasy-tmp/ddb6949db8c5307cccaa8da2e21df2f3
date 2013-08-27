@@ -57,7 +57,6 @@ public class YarnContainerLauncher extends ContainerLauncher {
   Map<String, LocalResource> localResources;
   Dispatcher dispatcher;
   Configuration conf;
-  String user;
   
   class YarnContainerLaunchTask implements Callable<Boolean> {
     LaunchContext ctx;
@@ -120,7 +119,10 @@ public class YarnContainerLauncher extends ContainerLauncher {
       cmd.add(ctx.getArgs());
       launchCtx.setCommands(cmd);
       
-      launchCtx.setUser(user);
+      if (conf.get(HamsterConfig.USER_NAME_KEY) == null) {
+        throw new HamsterException("user name not set in conf");
+      }
+      launchCtx.setUser(conf.get(HamsterConfig.USER_NAME_KEY));
       
       // set container-id
       launchCtx.setContainerId(ctx.getContainer().getId());
@@ -152,7 +154,6 @@ public class YarnContainerLauncher extends ContainerLauncher {
     this.conf = conf;
     try {
       localResources = loadLocalResources();
-      user = UserGroupInformation.getCurrentUser().getUserName();
     } catch (IOException e) {
       LOG.error("exception when load local resources", e);
       throw new HamsterException(e);

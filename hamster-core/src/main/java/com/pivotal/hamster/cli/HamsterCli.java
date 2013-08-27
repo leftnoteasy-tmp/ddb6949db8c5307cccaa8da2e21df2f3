@@ -26,6 +26,7 @@ import org.apache.hadoop.fs.FileStatus;
 import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.net.NetUtils;
+import org.apache.hadoop.security.UserGroupInformation;
 import org.apache.hadoop.yarn.api.ApplicationConstants;
 import org.apache.hadoop.yarn.api.ClientRMProtocol;
 import org.apache.hadoop.yarn.api.protocolrecords.GetApplicationReportRequest;
@@ -387,6 +388,11 @@ public class HamsterCli {
       isUserDefinedPolicy = true;
     }
     
+    // try to dump username to conf
+    if (conf.get(HamsterConfig.USER_NAME_KEY) == null) {
+      conf.set(HamsterConfig.USER_NAME_KEY, UserGroupInformation.getCurrentUser().getUserName());
+    }
+    
     // try to dump max-ppn
     if (context.getMaxPpn() > 0 && context.getMaxPpn() != Integer.MAX_VALUE) {
       conf.setInt(HamsterConfig.USER_POLICY_MPROC_KEY, context.getMaxPpn());
@@ -566,7 +572,14 @@ public class HamsterCli {
     
     // set app-id to app context
     val.setApplicationId(appId);
-
+    
+    // set user
+    if (conf.get(HamsterConfig.USER_NAME_KEY) == null) {
+      ctx.setUser(UserGroupInformation.getCurrentUser().getUserName());
+    } else {
+      ctx.setUser(conf.get(HamsterConfig.USER_NAME_KEY));
+    }
+    
     // set resource spec to container launch context
     setContainerCtxResource(ctx);
     
