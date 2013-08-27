@@ -47,6 +47,17 @@ public class HamsterCliProcessor implements CliProcessor {
           throw new HamsterCliParseException(String.format("-max-at must > 0, now=%d", maxAt));
         }
         context.setMaxAt(maxAt);
+      } else if (StringUtils.equals("p", op.getOpt())) {
+        String policy = op.getValue();
+        boolean valid = false;
+        if (StringUtils.equalsIgnoreCase(policy, "default") || StringUtils.equalsIgnoreCase(policy, "cl") || StringUtils.equalsIgnoreCase(policy, "compute-locality")) {
+          valid = true;
+        }
+        if (!valid) {
+          LOG.error("policy is not valid, please run hamster -h get more info");
+          throw new HamsterCliParseException("policy is not valid, please run hamster -h get more info");
+        }
+        context.setPolicy(policy);
       } else {
         newOptions.add(op);
       }

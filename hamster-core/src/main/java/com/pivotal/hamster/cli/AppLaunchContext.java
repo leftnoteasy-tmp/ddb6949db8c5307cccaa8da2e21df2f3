@@ -19,6 +19,7 @@ public class AppLaunchContext {
   int maxAt;
   String[] args;
   String prefix;
+  String policy;
   boolean debug;
   
   public AppLaunchContext() {
@@ -35,6 +36,15 @@ public class AppLaunchContext {
     args = null;
     prefix = null;
     debug = false;
+    policy = null;
+  }
+  
+  public void setPolicy(String policy) {
+    this.policy = policy;
+  }
+  
+  public String getPolicy() {
+    return policy;
   }
   
   public void setDebug(boolean debug) {

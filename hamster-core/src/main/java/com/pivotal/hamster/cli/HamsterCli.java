@@ -399,8 +399,10 @@ public class HamsterCli {
       // we will ignore allocation strategy in hamster-site.xml
       conf.set(HamsterConfig.ALLOCATION_STRATEGY_KEY, HamsterConfig.USER_POLICY_DRIVEN_ALLOCATION_STRATEGY);
     } else {
-      // user still can specify their favourite allocation strategy to their conf
-      if (conf.get(HamsterConfig.ALLOCATION_STRATEGY_KEY) == null) {
+      if (StringUtils.equalsIgnoreCase(context.getPolicy(), "compute-locality")
+          || StringUtils.equalsIgnoreCase(context.getPolicy(), "cl")) {
+        conf.set(HamsterConfig.ALLOCATION_STRATEGY_KEY, HamsterConfig.PROBABILITY_BASED_ALLOCATION_STRATEGY);
+      } else {
         conf.set(HamsterConfig.ALLOCATION_STRATEGY_KEY, HamsterConfig.DEFAULT_HAMSTER_ALLOCATION_STRATEGY);
       }
     }
