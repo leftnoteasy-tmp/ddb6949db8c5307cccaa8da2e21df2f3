@@ -713,9 +713,20 @@ public class HamsterCli {
   
   void addClasspathToEnv() {
     context.appendEnv("CLASSPATH", "./*");
+    // add class path of Apache YARN's directories 
     for (String cp : YarnConfiguration.DEFAULT_YARN_APPLICATION_CLASSPATH) {
       context.appendEnv("CLASSPATH", cp);
     }
+    // add class path of PHD's directories
+    context.appendEnv("CLASSPATH", "$HADOOP_HOME/*");
+    context.appendEnv("CLASSPATH", "$HADOOP_HOME/lib/*");
+    context.appendEnv("CLASSPATH", "$HADOOP_COMMON_HOME/*");
+    context.appendEnv("CLASSPATH", "$HADOOP_COMMON_HOME/lib/*");
+    context.appendEnv("CLASSPATH", "$HADOOP_HDFS_HOME/*");
+    context.appendEnv("CLASSPATH", "$HADOOP_HDFS_HOME/lib/*");
+    context.appendEnv("CLASSPATH", "$HADOOP_YARN_HOME/*");
+    context.appendEnv("CLASSPATH", "$HADOOP_YARN_HOME/lib/*");
+
     context.appendEnv("CLASSPATH", "hamster-core.jar");
   }
   

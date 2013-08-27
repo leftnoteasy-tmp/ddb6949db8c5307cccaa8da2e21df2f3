@@ -62,14 +62,6 @@ public class NotSupportedOptionsProcessor implements CliProcessor {
       "max-node",
       "min-proc",
       "min-ppn",
-      
-      /* temporarily disable hint options */
-      "host",
-      "H",
-      "hostfile",
-      "machinefile",
-      "default-hostfile",
-      "max-ppn"
   };
   
   @Override
