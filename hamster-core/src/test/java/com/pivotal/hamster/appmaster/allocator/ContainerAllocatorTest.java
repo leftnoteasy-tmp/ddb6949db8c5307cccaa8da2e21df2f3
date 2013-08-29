@@ -201,10 +201,6 @@ public class ContainerAllocatorTest {
     
     MockScheduler scheduler = (MockScheduler)allocator.getScheduler();
     
-    // allocate
-    allocator.allocate(5);
-    Assert.assertTrue(allocator.allocateFinished.get());
-    
     // now we will see if container can be returned
     // we will add some container in AM response, now allocateFinished marked true,
     // so such containers will be released in next query
@@ -227,5 +223,51 @@ public class ContainerAllocatorTest {
     // we sleep 2 more interval, now should time out failure triggered
     Thread.sleep(2 * TEMP_RM_PULL_INTERVAL);
     Assert.assertNotNull(dispatcher.getRecvedEvent());
+  }
+  
+  @Test
+  public void testContianerAllocatorTimeoutButFinished() throws Exception {
+    final int TEMP_RM_PULL_INTERVAL = 20; // 20ms 
+    final int ALLOCATION_TIMEOUT = 55; // 55 ms
+    MockDispatcher dispatcher = new MockDispatcher();
+    
+    ContainerAllocatorUT allocator = new ContainerAllocatorUT(dispatcher);
+    
+    // make a shorter query frequent, we will save some time in UT
+    Configuration conf = new Configuration();
+    conf.setInt(HamsterConfig.HAMSTER_ALLOCATOR_PULL_INTERVAL_TIME, TEMP_RM_PULL_INTERVAL);
+    conf.setInt(HamsterConfig.ALLOCATION_TIMEOUT_KEY, ALLOCATION_TIMEOUT);
+    
+    // init and start
+    allocator.init(conf);
+    allocator.start();
+    
+    MockScheduler scheduler = (MockScheduler)allocator.getScheduler();
+    
+    // now we will see if container can be returned
+    // we will add some container in AM response, now allocateFinished marked true,
+    // so such containers will be released in next query
+    AllocateResponse response = recordFactory.newRecordInstance(AllocateResponse.class);
+    AMResponse realResponse = recordFactory.newRecordInstance(AMResponse.class);
+    List<Container> allocateResponseContainers = new ArrayList<Container>();
+    allocateResponseContainers.add(new MockContainer(0));
+    allocateResponseContainers.add(new MockContainer(3));
+    allocateResponseContainers.add(new MockContainer(5));
+    realResponse.setAllocatedContainers(allocateResponseContainers);
+    response.setAMResponse(realResponse);
+    scheduler.setNextAllocateResponse(response);
+    
+    allocator.allocateFinished.set(true);
+    
+    // ok, we will sleep 2 * INTERVAL to see if dispatcher recived failure event
+    Thread.sleep(TEMP_RM_PULL_INTERVAL);
+    Assert.assertNull(dispatcher.getRecvedEvent());
+    Thread.sleep(TEMP_RM_PULL_INTERVAL);
+    Assert.assertNull(dispatcher.getRecvedEvent());
+    
+    // we sleep 2 more interval, now should time out failure triggered, but we already set allocateFinished,
+    // so this will still not be triggered
+    Thread.sleep(2 * TEMP_RM_PULL_INTERVAL);
+    Assert.assertNull(dispatcher.getRecvedEvent());
   }
 }

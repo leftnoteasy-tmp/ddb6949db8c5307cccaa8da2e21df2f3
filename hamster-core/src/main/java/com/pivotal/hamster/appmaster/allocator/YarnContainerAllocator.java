@@ -269,13 +269,15 @@ public class YarnContainerAllocator extends ContainerAllocator {
         while (!stopped.get() && !Thread.currentThread().isInterrupted()) {
           try {
             // check if we exceeded allocation timeout
-            int timeElapsed = (int) (System.currentTimeMillis() - startTime);
-            if (timeElapsed > allocationTimeout) {
-              String msg = String.format(
-                      "allocation timeout reached, time-used:%d(ms), failure-time-out:%d(ms), fail job,",
-                      timeElapsed, allocationTimeout);
-              dispatcher.getEventHandler().handle(
-                  new HamsterFailureEvent(new HamsterException(msg), msg));
+            if (!allocateFinished.get()) {
+              int timeElapsed = (int) (System.currentTimeMillis() - startTime);
+              if (timeElapsed > allocationTimeout) {
+                String msg = String.format(
+                        "allocation timeout reached, time-used:%d(ms), failure-time-out:%d(ms), fail job,",
+                        timeElapsed, allocationTimeout);
+                dispatcher.getEventHandler().handle(
+                    new HamsterFailureEvent(new HamsterException(msg), msg));
+              }
             }
             
             Thread.sleep(rmPollInterval);
